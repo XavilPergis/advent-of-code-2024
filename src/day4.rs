@@ -4,6 +4,7 @@ use crate::{RunContext, RunnerRepository};
 
 pub fn add_variants(repo: &mut RunnerRepository) {
     repo.add_variant("part1", part1);
+    repo.add_variant("part1_split", part1_split);
     repo.add_variant("part2", part2);
 }
 
@@ -63,13 +64,6 @@ impl Index<(usize, usize)> for Board {
 fn check_surrounding(board: &Board, x: usize, y: usize) -> usize {
     let mut res = 0;
 
-    // let seq = [
-    //     ((4, 0), [(0, 0), (1, 0), (2, 0), (3, 0)]),
-    //     ((0, 4), [(0, 0), (0, 1), (0, 2), (0, 3)]),
-    //     ((4, 4), [(0, 0), (1, 1), (2, 2), (3, 3)]),
-    //     ((0, -4), [(0, 0), (0, -1), (0, -2), (0, -3)]),
-    // ];
-
     if x + 4 <= board.width {
         if board[(x, y)] == Letter::X
             && board[(x + 1, y)] == Letter::M
@@ -86,6 +80,7 @@ fn check_surrounding(board: &Board, x: usize, y: usize) -> usize {
             res += 1;
         }
     }
+
     if y + 4 <= board.height {
         if board[(x, y)] == Letter::X
             && board[(x, y + 1)] == Letter::M
@@ -102,6 +97,7 @@ fn check_surrounding(board: &Board, x: usize, y: usize) -> usize {
             res += 1;
         }
     }
+
     if x + 4 <= board.width && y + 4 <= board.height {
         if board[(x, y)] == Letter::X
             && board[(x + 1, y + 1)] == Letter::M
@@ -118,6 +114,7 @@ fn check_surrounding(board: &Board, x: usize, y: usize) -> usize {
             res += 1;
         }
     }
+
     if x + 4 <= board.width && y >= 3 {
         if board[(x, y)] == Letter::X
             && board[(x + 1, y - 1)] == Letter::M
@@ -144,6 +141,79 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<()> {
     for x in 0..board.width {
         for y in 0..board.height {
             res += check_surrounding(&board, x, y);
+        }
+    }
+
+    println!("{res}");
+
+    Ok(())
+}
+
+fn part1_split(ctx: &mut RunContext) -> eyre::Result<()> {
+    let board = parse_board(ctx)?;
+
+    let mut res = 0;
+
+    const XMAS: [Letter; 4] = [Letter::X, Letter::M, Letter::A, Letter::S];
+    const SAMX: [Letter; 4] = [Letter::S, Letter::A, Letter::M, Letter::X];
+
+    // right
+    for y in 0..board.height {
+        for x in 0..board.width - 3 {
+            let line = [
+                board[(x, y)],
+                board[(x + 1, y)],
+                board[(x + 2, y)],
+                board[(x + 3, y)],
+            ];
+            if line == XMAS || line == SAMX {
+                res += 1;
+            }
+        }
+    }
+
+    // down
+    for y in 0..board.height - 3 {
+        for x in 0..board.width {
+            let line = [
+                board[(x, y)],
+                board[(x, y + 1)],
+                board[(x, y + 2)],
+                board[(x, y + 3)],
+            ];
+            if line == XMAS || line == SAMX {
+                res += 1;
+            }
+        }
+    }
+
+    // down-right
+    for y in 0..board.height - 3 {
+        for x in 0..board.width - 3 {
+            let line = [
+                board[(x, y)],
+                board[(x + 1, y + 1)],
+                board[(x + 2, y + 2)],
+                board[(x + 3, y + 3)],
+            ];
+            if line == XMAS || line == SAMX {
+                res += 1;
+            }
+        }
+    }
+
+    // up-right
+    for y in 3..board.height {
+        for x in 0..board.width - 3 {
+            let line = [
+                board[(x, y)],
+                board[(x + 1, y - 1)],
+                board[(x + 2, y - 2)],
+                board[(x + 3, y - 3)],
+            ];
+            if line == XMAS || line == SAMX {
+                res += 1;
+            }
         }
     }
 
