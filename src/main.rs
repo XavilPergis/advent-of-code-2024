@@ -8,6 +8,7 @@ use structopt::StructOpt;
 mod day1;
 mod day2;
 mod day3;
+mod day4;
 
 #[derive(Clone, Debug, StructOpt)]
 struct RunConfig {
@@ -69,6 +70,7 @@ fn make_repo() -> RunnerRepository {
     repo.merge_day(1, day1::add_variants);
     repo.merge_day(2, day2::add_variants);
     repo.merge_day(3, day3::add_variants);
+    repo.merge_day(4, day4::add_variants);
     repo
 }
 

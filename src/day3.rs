@@ -16,10 +16,6 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<()> {
     Ok(())
 }
 
-struct Parser<'a> {
-    src: &'a str,
-}
-
 fn eat_str(src: &mut &str, str: &str) -> bool {
     if src.starts_with(str) {
         *src = &src[str.len()..];
