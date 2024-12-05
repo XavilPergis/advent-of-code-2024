@@ -5,11 +5,6 @@ use std::{
 
 use structopt::StructOpt;
 
-mod day1;
-mod day2;
-mod day3;
-mod day4;
-
 #[derive(Clone, Debug, StructOpt)]
 struct RunConfig {
     #[structopt(long, short)]
@@ -19,6 +14,10 @@ struct RunConfig {
     #[structopt(long, short)]
     /// The file path of the input to use.
     pub input: Option<String>,
+    #[structopt(long, short, default_value = "1")]
+    pub reruns: usize,
+    #[structopt(long, short, default_value = "60")]
+    pub rerun_time_limit_s: f64,
 }
 
 pub struct RunContext<'a> {
@@ -65,12 +64,20 @@ impl RunnerRepository {
 
 pub type VariantRunner = fn(&mut RunContext) -> eyre::Result<()>;
 
+mod day1;
+mod day2;
+mod day3;
+mod day4;
+mod day5;
+
 fn make_repo() -> RunnerRepository {
+    
     let mut repo = RunnerRepository::new();
     repo.merge_day(1, day1::add_variants);
     repo.merge_day(2, day2::add_variants);
     repo.merge_day(3, day3::add_variants);
     repo.merge_day(4, day4::add_variants);
+    repo.merge_day(5, day5::add_variants);
     repo
 }
 
@@ -111,32 +118,70 @@ fn main() -> eyre::Result<()> {
     let input = std::fs::read_to_string(file_path)?;
 
     println!("running day{day}/{}", part_name);
-    if let Err(_) = std::panic::catch_unwind(|| {
-        let mut ctx = RunContext {
-            input: &input,
-            begin_timestamp: None,
-            parsed_timestamp: None,
-            complete_timestamp: None,
-        };
+    let mut ctx = RunContext {
+        input: &input,
+        begin_timestamp: None,
+        parsed_timestamp: None,
+        complete_timestamp: None,
+    };
 
+    let mut samples = Vec::with_capacity(config.reruns);
+    let loop_start = Instant::now();
+    for _ in 0..config.reruns {
         ctx.begin_timestamp = Some(Instant::now());
         let res = part(&mut ctx);
         ctx.complete_timestamp = Some(Instant::now());
-
         if let Err(err) = res {
             println!("\x1b[31mpart returned error:\x1b[0m {err:?}");
+            break;
         }
 
-        let elapsed = ctx
-            .complete_timestamp
-            .unwrap()
-            .duration_since(ctx.begin_timestamp.unwrap());
-        println!("finished in {}", DisplayDuration(elapsed));
-    }) {
-        println!("\x1b[31m=== part panicked! ===\x1b[0m");
+        let (start, end) = (
+            ctx.begin_timestamp.unwrap(),
+            ctx.complete_timestamp.unwrap(),
+        );
+        samples.push(Sample {
+            full: end.duration_since(start),
+            parse: ctx.parsed_timestamp.map(|ts| ts.duration_since(start)),
+        });
+
+        if loop_start.elapsed() > Duration::from_secs_f64(config.rerun_time_limit_s) {
+            break;
+        }
     }
 
+    let mut full_total = Duration::ZERO;
+    let mut full_min = Duration::MAX;
+    let mut full_max = Duration::ZERO;
+    for sample in &samples {
+        full_total += sample.full;
+        full_min = Duration::min(full_min, sample.full);
+        full_max = Duration::max(full_max, sample.full);
+    }
+    println!(
+        "n={}, average={}, min={}, max={}",
+        samples.len(),
+        DisplayDuration(full_total / samples.len() as u32),
+        DisplayDuration(full_min),
+        DisplayDuration(full_max)
+    );
+
+    // let elapsed = ctx
+    //     .complete_timestamp
+    //     .unwrap()
+    //     .duration_since(ctx.begin_timestamp.unwrap());
+    // println!("finished in {}", DisplayDuration(elapsed));
+
+    // if let Some(parse_ts) = ctx.parsed_timestamp {
+    //     let elapsed = parse_ts.duration_since(ctx.begin_timestamp.unwrap());
+    //     println!("parsed in {}", DisplayDuration(elapsed));
+    // }
     Ok(())
+}
+
+struct Sample {
+    pub full: Duration,
+    pub parse: Option<Duration>,
 }
 
 #[derive(Copy, Clone, Debug)]
