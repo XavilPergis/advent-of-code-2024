@@ -69,6 +69,7 @@ mod day2;
 mod day3;
 mod day4;
 mod day5;
+mod day6;
 
 fn make_repo() -> RunnerRepository {
     
@@ -78,6 +79,7 @@ fn make_repo() -> RunnerRepository {
     repo.merge_day(3, day3::add_variants);
     repo.merge_day(4, day4::add_variants);
     repo.merge_day(5, day5::add_variants);
+    repo.merge_day(6, day6::add_variants);
     repo
 }
 

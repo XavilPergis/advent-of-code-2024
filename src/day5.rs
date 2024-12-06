@@ -37,9 +37,12 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<()> {
     ctx.mark_parse_complete();
 
     let mut sum = 0;
+    let mut valid_elems = HashSet::<u32>::new();
+    let mut seen_elems = HashSet::<u32>::new();
     'outer: for update in &updates {
-        let valid_elems = update.iter().copied().collect::<HashSet<_>>();
-        let mut seen_elems = HashSet::<u32>::new();
+        valid_elems.clear();
+        seen_elems.clear();
+        valid_elems.extend(update.iter().copied());
         for &num in update {
             for implicated in implications[&num]
                 .iter()
