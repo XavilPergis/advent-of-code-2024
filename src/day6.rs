@@ -1,10 +1,13 @@
-use std::ops::{Index, IndexMut};
+use std::{
+    collections::{HashMap, HashSet},
+    ops::{Add, Index, IndexMut, Sub},
+};
 
 use crate::{RunContext, RunnerRepository};
 
 pub fn add_variants(repo: &mut RunnerRepository) {
     repo.add_variant("part1", part1);
-    // repo.add_variant("part2", part2);
+    repo.add_variant("part2", part2);
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
@@ -45,6 +48,19 @@ impl<T> IndexMut<(usize, usize)> for Vec2d<T> {
     }
 }
 
+impl<T> Index<Vec2> for Vec2d<T> {
+    type Output = T;
+    fn index(&self, Vec2 { x, y }: Vec2) -> &Self::Output {
+        &self.data[self.width * y as usize + x as usize]
+    }
+}
+
+impl<T> IndexMut<Vec2> for Vec2d<T> {
+    fn index_mut(&mut self, Vec2 { x, y }: Vec2) -> &mut Self::Output {
+        &mut self.data[self.width * y as usize + x as usize]
+    }
+}
+
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 enum Tile {
     Wall,
@@ -54,31 +70,87 @@ enum Tile {
 
 struct State {
     dir: Direction,
-    pos: (isize, isize),
+    pos: Vec2,
     width: usize,
     height: usize,
     map: Vec2d<Tile>,
 }
 
 impl State {
-    fn inbounds(&self, (x, y): (isize, isize)) -> bool {
+    fn inbounds(&self, Vec2 { x, y }: Vec2) -> bool {
         x >= 0 && y >= 0 && (x as usize) < self.width && (y as usize) < self.height
     }
-    fn is_wall(&self, pos: (isize, isize)) -> bool {
+    fn is_wall(&self, pos: Vec2) -> bool {
         match self.inbounds(pos) {
-            true => self.map[cast_pos(pos)] == Tile::Wall,
+            true => self.map[pos] == Tile::Wall,
             false => false,
         }
     }
 }
 
-fn cast_pos(pos: (isize, isize)) -> (usize, usize) {
-    (pos.0 as usize, pos.1 as usize)
+// `dir` is the direction the guard would be heading towards
+// fn would_loop(state: &State, pos: (isize, isize), dir: Direction) -> bool {
+//     let mut seen = HashSet::new();
+
+//     todo!()
+// }
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+struct Vec2 {
+    x: isize,
+    y: isize,
 }
 
-fn part1(ctx: &mut RunContext) -> eyre::Result<()> {
+fn vec2(x: usize, y: usize) -> Vec2 {
+    Vec2 {
+        x: x as isize,
+        y: y as isize,
+    }
+}
+
+impl Add for Vec2 {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Vec2 {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+        }
+    }
+}
+
+impl Sub for Vec2 {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Vec2 {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+        }
+    }
+}
+
+fn offset_from_dir(dir: Direction) -> Vec2 {
+    match dir {
+        Direction::Up => Vec2 { x: 0, y: -1 },
+        Direction::Right => Vec2 { x: 1, y: 0 },
+        Direction::Down => Vec2 { x: 0, y: 1 },
+        Direction::Left => Vec2 { x: -1, y: 0 },
+    }
+}
+
+fn rotate_dir(dir: Direction) -> Direction {
+    match dir {
+        Direction::Up => Direction::Right,
+        Direction::Right => Direction::Down,
+        Direction::Down => Direction::Left,
+        Direction::Left => Direction::Up,
+    }
+}
+
+fn parse(ctx: &mut RunContext) -> eyre::Result<State> {
     let mut map = vec![];
-    let mut pos = (0, 0);
+    let mut pos = Vec2 { x: 0, y: 0 };
     let mut width = 0;
     let mut height = 0;
     for (yi, line) in ctx.input.lines().enumerate() {
@@ -93,39 +165,37 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<()> {
                 b'#' => map.push(Tile::Wall),
                 b'^' => {
                     map.push(Tile::Empty);
-                    pos = (xi as isize, yi as isize)
+                    pos = Vec2 {
+                        x: xi as isize,
+                        y: yi as isize,
+                    }
                 }
                 _ => eyre::bail!("unexpected char in input: '{}'", ch as char),
             }
         }
     }
 
-    let mut state = State {
+    ctx.mark_parse_complete();
+
+    Ok(State {
         dir: Direction::Up,
         pos,
         width,
         height,
         map: Vec2d::new(width, height, map),
-    };
+    })
+}
+
+fn part1(ctx: &mut RunContext) -> eyre::Result<()> {
+    let mut state = parse(ctx)?;
 
     while state.inbounds(state.pos) {
-        assert_ne!(state.map[cast_pos(state.pos)], Tile::Wall);
-        state.map[cast_pos(state.pos)] = Tile::Seen;
+        assert_ne!(state.map[state.pos], Tile::Wall);
+        state.map[state.pos] = Tile::Seen;
 
-        let next_pos = match state.dir {
-            Direction::Up => (state.pos.0, state.pos.1 - 1),
-            Direction::Right => (state.pos.0 + 1, state.pos.1),
-            Direction::Down => (state.pos.0, state.pos.1 + 1),
-            Direction::Left => (state.pos.0 - 1, state.pos.1),
-        };
-
+        let next_pos = state.pos + offset_from_dir(state.dir);
         if state.is_wall(next_pos) {
-            state.dir = match state.dir {
-                Direction::Up => Direction::Right,
-                Direction::Right => Direction::Down,
-                Direction::Down => Direction::Left,
-                Direction::Left => Direction::Up,
-            }
+            state.dir = rotate_dir(state.dir);
         } else {
             state.pos = next_pos;
         }
@@ -139,19 +209,100 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<()> {
         .count();
     println!("{total}");
 
-    for y in 0..state.map.height {
-        for x in 0..state.map.width {
-            print!(
-                "{}",
-                match state.map[(x, y)] {
-                    Tile::Wall => '#',
-                    Tile::Empty => ' ',
-                    Tile::Seen => '.',
-                }
-            );
+    // for y in 0..state.map.height {
+    //     for x in 0..state.map.width {
+    //         print!(
+    //             "{}",
+    //             match state.map[(x, y)] {
+    //                 Tile::Wall => '#',
+    //                 Tile::Empty => ' ',
+    //                 Tile::Seen => '.',
+    //             }
+    //         );
+    //     }
+    //     println!();
+    // }
+
+    Ok(())
+}
+
+fn part2(ctx: &mut RunContext) -> eyre::Result<()> {
+    let mut state = parse(ctx)?;
+
+    let start_pos = state.pos;
+    let start_dir = state.dir;
+
+    let mut canditates = Vec::new();
+    while state.inbounds(state.pos) {
+        assert_ne!(state.map[state.pos], Tile::Wall);
+        state.map[state.pos] = Tile::Seen;
+
+        let next_pos = state.pos + offset_from_dir(state.dir);
+        if state.is_wall(next_pos) {
+            state.dir = rotate_dir(state.dir);
+        } else {
+            canditates.push(next_pos);
+            state.pos = next_pos;
         }
-        println!();
     }
+
+    let mut obstacles = HashSet::new();
+    let mut total = 0;
+    let mut seen = HashSet::new();
+    for &obstacle_pos in &canditates {
+        state.dir = start_dir;
+        state.pos = start_pos;
+        if !state.inbounds(obstacle_pos) {
+            continue;
+        }
+        if obstacle_pos == state.pos {
+            continue;
+        }
+        state.map[obstacle_pos] = Tile::Wall;
+
+        seen.clear();
+
+        while state.inbounds(state.pos) {
+            assert_ne!(state.map[state.pos], Tile::Wall);
+
+            if !seen.insert((state.dir, state.pos)) {
+                // we found a loop!
+                if obstacles.insert(obstacle_pos) {
+                    total += 1;
+                }
+                break;
+            }
+
+            let next_pos = state.pos + offset_from_dir(state.dir);
+            if state.is_wall(next_pos) {
+                state.dir = rotate_dir(state.dir);
+            } else {
+                state.pos = next_pos;
+            }
+        }
+
+        // undo temporary obstacle placement. We don't produce any candidates that have walls in front in the first place, so this is fine.
+        state.map[obstacle_pos] = Tile::Empty;
+    }
+
+    println!("{total}");
+
+
+    // for y in 0..state.map.height {
+    //     for x in 0..state.map.width {
+    //         print!(
+    //             "{}",
+    //             match (obstacles.contains(&vec2(x, y)), state.map[(x, y)]) {
+    //                 (true, Tile::Wall) => '?',
+    //                 (false, Tile::Wall) => '#',
+    //                 (true, _) => 'O',
+    //                 (false, _) => ' ',
+    //             }
+    //         );
+    //     }
+    //     println!();
+    // }
+
 
     Ok(())
 }
