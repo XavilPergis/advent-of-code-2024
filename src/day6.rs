@@ -7,6 +7,7 @@ use crate::{RunContext, RunnerRepository};
 
 pub fn add_variants(repo: &mut RunnerRepository) {
     repo.add_variant("part1", part1);
+    repo.add_variant("part1_bitset", part1_bitset);
     repo.add_variant("part2", part2);
 }
 
@@ -31,6 +32,16 @@ impl<T> Vec2d<T> {
             width,
             height,
             data,
+        }
+    }
+    fn broadcast(width: usize, height: usize, value: T) -> Self
+    where
+        T: Clone,
+    {
+        Self {
+            width,
+            height,
+            data: vec![value; width * height],
         }
     }
 }
@@ -226,6 +237,117 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<()> {
     Ok(())
 }
 
+#[derive(Clone, Debug)]
+struct FixedBitset {
+    len: usize,
+    bits: Vec<u64>,
+}
+
+impl FixedBitset {
+    pub fn new(len: usize) -> Self {
+        Self {
+            len,
+            bits: vec![0u64; (len >> 6) + 1],
+        }
+    }
+}
+
+impl FixedBitset {
+    fn get(&self, ix: usize) -> bool {
+        debug_assert!(ix < self.len);
+        self.bits[ix >> 6] & 1u64.wrapping_shl(ix as u32) != 0
+    }
+
+    fn set(&mut self, ix: usize) {
+        debug_assert!(ix < self.len);
+        self.bits[ix >> 6] |= 1u64.wrapping_shl(ix as u32);
+    }
+
+    fn clear(&mut self, ix: usize) {
+        debug_assert!(ix < self.len);
+        self.bits[ix >> 6] &= !1u64.wrapping_shl(ix as u32);
+    }
+
+    fn count_ones(&self) -> u32 {
+        self.bits.iter().copied().map(u64::count_ones).sum()
+    }
+}
+
+const BOARD_LEN: usize = 130;
+const BOARD_AREA: usize = 130 * 130;
+
+fn part1_bitset(ctx: &mut RunContext) -> eyre::Result<()> {
+    let mut walls = FixedBitset::new(BOARD_AREA);
+    let mut visited = FixedBitset::new(BOARD_AREA);
+    let mut x = 0;
+    let mut y = 0;
+
+    for (yi, line) in ctx.input.lines().enumerate() {
+        if line.trim().is_empty() {
+            break;
+        }
+        for (xi, ch) in line.trim().bytes().enumerate() {
+            match ch {
+                b'.' => {}
+                b'#' => walls.set(BOARD_LEN * yi + xi),
+                b'^' => {
+                    x = xi;
+                    y = yi;
+                }
+                _ => eyre::bail!("unexpected char in input: '{}'", ch as char),
+            }
+        }
+    }
+
+    'outer: loop {
+        loop {
+            visited.set(BOARD_LEN * y + x);
+            if y == 0 {
+                break 'outer;
+            }
+            if walls.get(BOARD_LEN * (y - 1) + x) {
+                break;
+            }
+            y -= 1;
+        }
+        loop {
+            visited.set(BOARD_LEN * y + x);
+            if x == BOARD_LEN - 1 {
+                break 'outer;
+            }
+            if walls.get(BOARD_LEN * y + x + 1) {
+                break;
+            }
+            x += 1;
+        }
+        loop {
+            visited.set(BOARD_LEN * y + x);
+            if y == BOARD_LEN - 1 {
+                break 'outer;
+            }
+            if walls.get(BOARD_LEN * (y + 1) + x) {
+                break;
+            }
+            y += 1;
+        }
+        loop {
+            visited.set(BOARD_LEN * y + x);
+            if x == 0 {
+                break 'outer;
+            }
+            if walls.get(BOARD_LEN * y + x - 1) {
+                break;
+            }
+            x -= 1;
+        }
+    }
+
+    let total = visited.count_ones();
+    println!("{total}");
+
+    Ok(())
+}
+
 fn part2(ctx: &mut RunContext) -> eyre::Result<()> {
     let mut state = parse(ctx)?;
 
@@ -287,7 +409,6 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<()> {
 
     println!("{total}");
 
-
     // for y in 0..state.map.height {
     //     for x in 0..state.map.width {
     //         print!(
@@ -302,7 +423,6 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<()> {
     //     }
     //     println!();
     // }
-
 
     Ok(())
 }
