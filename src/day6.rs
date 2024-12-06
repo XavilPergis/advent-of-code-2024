@@ -252,20 +252,32 @@ impl FixedBitset {
     }
 }
 
+const HI64: u64 = 1u64 << 63;
+
 impl FixedBitset {
     fn get(&self, ix: usize) -> bool {
         debug_assert!(ix < self.len);
-        self.bits[ix >> 6] & 1u64.wrapping_shl(ix as u32) != 0
+        self.bits[ix >> 6] & HI64.wrapping_shr(ix as u32) != 0
     }
 
     fn set(&mut self, ix: usize) {
         debug_assert!(ix < self.len);
-        self.bits[ix >> 6] |= 1u64.wrapping_shl(ix as u32);
+        self.bits[ix >> 6] |= HI64.wrapping_shr(ix as u32);
+    }
+
+    fn set_many(&mut self, ix: usize, mask: u64) {
+        let trunc = ix & u64::BITS as usize - 1;
+        if trunc == 0 {
+            self.bits[ix >> 6] |= mask;
+        } else {
+            self.bits[ix >> 6] |= mask >> trunc;
+            self.bits[(ix >> 6) + 1] |= mask << (u64::BITS as usize - trunc);
+        }
     }
 
     fn clear(&mut self, ix: usize) {
         debug_assert!(ix < self.len);
-        self.bits[ix >> 6] &= !1u64.wrapping_shl(ix as u32);
+        self.bits[ix >> 6] &= !HI64.wrapping_shr(ix as u32);
     }
 
     fn count_ones(&self) -> u32 {
@@ -282,20 +294,19 @@ fn part1_bitset(ctx: &mut RunContext) -> eyre::Result<()> {
     let mut x = 0;
     let mut y = 0;
 
-    for (yi, line) in ctx.input.lines().enumerate() {
-        if line.trim().is_empty() {
-            break;
+    let mut acc = 0;
+    let mut base = 0;
+    let mut n = 0;
+    for &ch in ctx.input.as_bytes() {
+        if ch == b'\r' || ch == b'\n' {
+            continue;
         }
-        for (xi, ch) in line.trim().bytes().enumerate() {
-            match ch {
-                b'.' => {}
-                b'#' => walls.set(BOARD_LEN * yi + xi),
-                b'^' => {
-                    x = xi;
-                    y = yi;
-                }
-                _ => eyre::bail!("unexpected char in input: '{}'", ch as char),
-            }
+        acc |= (HI64 * (ch == b'#') as u64) >> (n & 63);
+        n += 1;
+        if n & 63 == 0 {
+            walls.set_many(base, acc);
+            acc = 0;
+            base = n;
         }
     }
 
