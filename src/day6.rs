@@ -197,7 +197,7 @@ fn parse(ctx: &mut RunContext) -> eyre::Result<State> {
     })
 }
 
-fn part1(ctx: &mut RunContext) -> eyre::Result<()> {
+fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
     let mut state = parse(ctx)?;
 
     while state.inbounds(state.pos) {
@@ -218,7 +218,6 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<()> {
         .iter()
         .filter(|&&tile| tile == Tile::Seen)
         .count();
-    println!("{total}");
 
     // for y in 0..state.map.height {
     //     for x in 0..state.map.width {
@@ -234,7 +233,7 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<()> {
     //     println!();
     // }
 
-    Ok(())
+    Ok(total as u64)
 }
 
 #[derive(Clone, Debug)]
@@ -288,7 +287,7 @@ impl FixedBitset {
 const BOARD_LEN: usize = 130;
 const BOARD_AREA: usize = 130 * 130;
 
-fn part1_bitset(ctx: &mut RunContext) -> eyre::Result<()> {
+fn part1_bitset(ctx: &mut RunContext) -> eyre::Result<u64> {
     let mut walls = FixedBitset::new(BOARD_AREA);
     let mut visited = FixedBitset::new(BOARD_AREA);
     let mut x = 0;
@@ -354,12 +353,10 @@ fn part1_bitset(ctx: &mut RunContext) -> eyre::Result<()> {
     }
 
     let total = visited.count_ones();
-    println!("{total}");
-
-    Ok(())
+    Ok(total as u64)
 }
 
-fn part2(ctx: &mut RunContext) -> eyre::Result<()> {
+fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
     let mut state = parse(ctx)?;
 
     let start_pos = state.pos;
@@ -418,8 +415,6 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<()> {
         state.map[obstacle_pos] = Tile::Empty;
     }
 
-    println!("{total}");
-
     // for y in 0..state.map.height {
     //     for x in 0..state.map.width {
     //         print!(
@@ -435,5 +430,5 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<()> {
     //     println!();
     // }
 
-    Ok(())
+    Ok(total as u64)
 }

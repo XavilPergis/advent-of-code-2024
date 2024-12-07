@@ -7,7 +7,7 @@ pub fn add_variants(repo: &mut RunnerRepository) {
     repo.add_variant("part2", part2);
 }
 
-fn part1(ctx: &mut RunContext) -> eyre::Result<()> {
+fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
     // A|B -> for each number N in update, find rules like A|N and check if A was already seen (how to discard non-matching rules?)
 
     let mut lines_iter = ctx.input.lines();
@@ -59,9 +59,7 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<()> {
         sum += update[(update.len() - 1) / 2];
     }
 
-    println!("{sum}");
-
-    Ok(())
+    Ok(sum as u64)
 }
 
 fn toposort(
@@ -80,7 +78,7 @@ fn toposort(
     out.push(current);
 }
 
-fn part2(ctx: &mut RunContext) -> eyre::Result<()> {
+fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
     let mut lines_iter = ctx.input.lines();
 
     let mut ordered_after = HashMap::<u32, Vec<u32>>::new();
@@ -142,7 +140,5 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<()> {
         }
     }
 
-    println!("{sum}");
-
-    Ok(())
+    Ok(sum as u64)
 }

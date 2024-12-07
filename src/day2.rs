@@ -24,7 +24,7 @@ fn part1_verify(line: &[u32]) -> bool {
     true
 }
 
-fn part1(ctx: &mut RunContext) -> eyre::Result<()> {
+fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
     let mut safe_count = 0;
     let mut line_data = Vec::<u32>::new();
     for line in ctx.input.lines() {
@@ -38,9 +38,7 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<()> {
         }
     }
 
-    println!("{safe_count:?}");
-
-    Ok(())
+    Ok(safe_count as u64)
 }
 
 fn part2_verify(line: &[u32]) -> bool {
@@ -79,7 +77,7 @@ fn test_day2_part2() {
     assert_eq!(part2_verify(&[1, 3, 6, 7, 9]), true); //: Safe without removing any level.
 }
 
-fn part2(ctx: &mut RunContext) -> eyre::Result<()> {
+fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
     let mut safe_count = 0;
     let mut line_data = Vec::<u32>::new();
     for line in ctx.input.lines() {
@@ -93,7 +91,5 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<()> {
         }
     }
 
-    println!("{safe_count:?}");
-
-    Ok(())
+    Ok(safe_count as u64)
 }

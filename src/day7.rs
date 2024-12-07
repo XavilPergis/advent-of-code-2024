@@ -21,7 +21,7 @@ fn solve_part1(test_value: u64, acc: u64, parts: &[u64]) -> bool {
     solve_part1(test_value, acc + head, tail) || solve_part1(test_value, acc * head, tail)
 }
 
-fn part1(ctx: &mut RunContext) -> eyre::Result<()> {
+fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
     let mut total = 0;
     let mut parts = vec![];
     for line in ctx.input.lines() {
@@ -36,8 +36,7 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<()> {
             total += test_value;
         }
     }
-    println!("{total}");
-    Ok(())
+    Ok(total)
 }
 
 fn concat(l: u64, r: u64) -> u64 {
@@ -64,7 +63,7 @@ fn solve_part2(test_value: u64, acc: u64, parts: &[u64]) -> bool {
         || solve_part2(test_value, concat(acc, head), tail)
 }
 
-fn part2(ctx: &mut RunContext) -> eyre::Result<()> {
+fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
     let mut total = 0;
     let mut parts = vec![];
     for line in ctx.input.lines() {
@@ -79,11 +78,10 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<()> {
             total += test_value;
         }
     }
-    println!("{total}");
-    Ok(())
+    Ok(total)
 }
 
-fn part2_parallel(ctx: &mut RunContext) -> eyre::Result<()> {
+fn part2_parallel(ctx: &mut RunContext) -> eyre::Result<u64> {
     let mut total = AtomicU64::new(0);
     // let mut parts = vec![];
     ctx.input.par_lines().try_for_each_init(
@@ -104,7 +102,6 @@ fn part2_parallel(ctx: &mut RunContext) -> eyre::Result<()> {
             Ok::<_, eyre::Report>(())
         },
     )?;
-    let total = total.get_mut();
-    println!("{total}");
-    Ok(())
+    let total = *total.get_mut();
+    Ok(total)
 }

@@ -133,7 +133,7 @@ fn check_surrounding(board: &Board, x: usize, y: usize) -> usize {
     res
 }
 
-fn part1(ctx: &mut RunContext) -> eyre::Result<()> {
+fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
     let board = parse_board(ctx)?;
 
     let mut res = 0;
@@ -143,12 +143,10 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<()> {
         }
     }
 
-    println!("{res}");
-
-    Ok(())
+    Ok(res as u64)
 }
 
-fn part1_split(ctx: &mut RunContext) -> eyre::Result<()> {
+fn part1_split(ctx: &mut RunContext) -> eyre::Result<u64> {
     let board = parse_board(ctx)?;
 
     let mut res = 0;
@@ -216,9 +214,7 @@ fn part1_split(ctx: &mut RunContext) -> eyre::Result<()> {
         }
     }
 
-    println!("{res}");
-
-    Ok(())
+    Ok(res as u64)
 }
 
 fn check_surrounding_part2(board: &Board, x: usize, y: usize) -> usize {
@@ -241,7 +237,7 @@ fn check_surrounding_part2(board: &Board, x: usize, y: usize) -> usize {
     res
 }
 
-fn part2(ctx: &mut RunContext) -> eyre::Result<()> {
+fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
     let board = parse_board(ctx)?;
 
     let mut res = 0;
@@ -251,7 +247,5 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<()> {
         }
     }
 
-    println!("{res}");
-
-    Ok(())
+    Ok(res as u64)
 }

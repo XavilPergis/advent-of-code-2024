@@ -31,7 +31,7 @@ fn parse(ctx: &mut RunContext) -> eyre::Result<Lists> {
     })
 }
 
-fn part1(ctx: &mut RunContext) -> eyre::Result<()> {
+fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
     let mut input = parse(ctx)?;
 
     input.left.sort_unstable();
@@ -42,11 +42,10 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<()> {
         total_dist += i32::abs_diff(left, right);
     }
 
-    println!("{total_dist}");
-    Ok(())
+    Ok(total_dist as u64)
 }
 
-fn part2(ctx: &mut RunContext) -> eyre::Result<()> {
+fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
     let input = parse(ctx)?;
 
     let mut freq = HashMap::<i32, u32>::new();
@@ -59,6 +58,5 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<()> {
         score += id * freq.get(&id).copied().unwrap_or_default() as i32;
     }
 
-    println!("{score}");
-    Ok(())
+    Ok(score as u64)
 }

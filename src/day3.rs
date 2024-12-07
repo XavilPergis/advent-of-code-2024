@@ -5,15 +5,14 @@ pub fn add_variants(repo: &mut RunnerRepository) {
     repo.add_variant("part2", part2);
 }
 
-fn part1(ctx: &mut RunContext) -> eyre::Result<()> {
+fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
     let regex = regex::Regex::new(r#"mul\(([0-9]{0,3}),([0-9]{0,3})\)"#).unwrap();
     let mut sum = 0;
     for matched in regex.captures_iter(ctx.input) {
         let (_, [l, r]) = matched.extract();
         sum += l.parse::<u32>()? * r.parse::<u32>()?;
     }
-    println!("{sum:?}");
-    Ok(())
+    Ok(sum as u64)
 }
 
 fn eat_str(src: &mut &str, str: &str) -> bool {
@@ -52,7 +51,7 @@ fn parse_mul(src: &mut &str) -> Option<u32> {
     Some(a * b)
 }
 
-fn part2(ctx: &mut RunContext) -> eyre::Result<()> {
+fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
     let mut src = ctx.input;
 
     let mut sum = 0;
@@ -74,7 +73,5 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<()> {
         }
     }
 
-    println!("{sum:?}");
-
-    Ok(())
+    Ok(sum as u64)
 }

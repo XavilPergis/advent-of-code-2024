@@ -62,7 +62,7 @@ impl RunnerRepository {
     }
 }
 
-pub type VariantRunner = fn(&mut RunContext) -> eyre::Result<()>;
+pub type VariantRunner = fn(&mut RunContext) -> eyre::Result<u64>;
 
 mod day1;
 mod day2;
@@ -131,13 +131,17 @@ fn main() -> eyre::Result<()> {
 
     let mut samples = Vec::with_capacity(config.reruns);
     let loop_start = Instant::now();
-    for _ in 0..config.reruns {
+    for i in 0..config.reruns {
         ctx.begin_timestamp = Some(Instant::now());
         let res = part(&mut ctx);
         ctx.complete_timestamp = Some(Instant::now());
         if let Err(err) = res {
             println!("\x1b[31mpart returned error:\x1b[0m {err:?}");
             break;
+        }
+
+        if i == 0 {
+            println!("{}", res.unwrap());
         }
 
         let (start, end) = (
@@ -154,6 +158,7 @@ fn main() -> eyre::Result<()> {
         }
     }
 
+    samples.sort_unstable_by_key(|sample| sample.full);
     let mut full_total = Duration::ZERO;
     let mut full_min = Duration::MAX;
     let mut full_max = Duration::ZERO;
@@ -162,10 +167,12 @@ fn main() -> eyre::Result<()> {
         full_min = Duration::min(full_min, sample.full);
         full_max = Duration::max(full_max, sample.full);
     }
+    let full_median = samples[(samples.len() - 1) / 2].full;
     println!(
-        "n={}, average={}, min={}, max={}",
+        "n={}, average={}, median={}, min={}, max={}",
         samples.len(),
         DisplayDuration(full_total / samples.len() as u32),
+        DisplayDuration(full_median),
         DisplayDuration(full_min),
         DisplayDuration(full_max)
     );
