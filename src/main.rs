@@ -64,30 +64,11 @@ impl RunnerRepository {
 
 pub type VariantRunner = fn(&mut RunContext) -> eyre::Result<u64>;
 
-mod day1;
-mod day2;
-mod day3;
-mod day4;
-mod day5;
-mod day6;
-mod day7;
-
-fn make_repo() -> RunnerRepository {
-    
-    let mut repo = RunnerRepository::new();
-    repo.merge_day(1, day1::add_variants);
-    repo.merge_day(2, day2::add_variants);
-    repo.merge_day(3, day3::add_variants);
-    repo.merge_day(4, day4::add_variants);
-    repo.merge_day(5, day5::add_variants);
-    repo.merge_day(6, day6::add_variants);
-    repo.merge_day(7, day7::add_variants);
-    repo
-}
+mod days;
 
 fn main() -> eyre::Result<()> {
     let config = RunConfig::from_args_safe()?;
-    let repo = make_repo();
+    let repo = days::make_repo();
 
     let day = match config.day {
         Some(day) => day,
