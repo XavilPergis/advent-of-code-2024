@@ -1,14 +1,18 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashSet,
     ops::{Add, Index, IndexMut, Sub},
 };
 
-use crate::{RunContext, RunnerRepository};
+use crate::{
+    bitset::{self, FixedBitset},
+    RunContext, RunnerRepository,
+};
 
 pub fn add_variants(repo: &mut RunnerRepository) {
     repo.add_variant("part1", part1);
     repo.add_variant("part1_bitset", part1_bitset);
     repo.add_variant("part2", part2);
+    repo.add_variant("part2_bitset", part2_bitset);
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
@@ -21,7 +25,7 @@ enum Direction {
 
 struct Vec2d<T> {
     width: usize,
-    height: usize,
+    _height: usize,
     data: Vec<T>,
 }
 
@@ -30,20 +34,20 @@ impl<T> Vec2d<T> {
         assert_eq!(width * height, data.len());
         Self {
             width,
-            height,
+            _height: height,
             data,
         }
     }
-    fn broadcast(width: usize, height: usize, value: T) -> Self
-    where
-        T: Clone,
-    {
-        Self {
-            width,
-            height,
-            data: vec![value; width * height],
-        }
-    }
+    // fn broadcast(width: usize, height: usize, value: T) -> Self
+    // where
+    //     T: Clone,
+    // {
+    //     Self {
+    //         width,
+    //         _height: height,
+    //         data: vec![value; width * height],
+    //     }
+    // }
 }
 
 impl<T> Index<(usize, usize)> for Vec2d<T> {
@@ -112,12 +116,12 @@ struct Vec2 {
     y: isize,
 }
 
-fn vec2(x: usize, y: usize) -> Vec2 {
-    Vec2 {
-        x: x as isize,
-        y: y as isize,
-    }
-}
+// fn vec2(x: usize, y: usize) -> Vec2 {
+//     Vec2 {
+//         x: x as isize,
+//         y: y as isize,
+//     }
+// }
 
 impl Add for Vec2 {
     type Output = Self;
@@ -236,56 +240,9 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
     Ok(total as u64)
 }
 
-#[derive(Clone, Debug)]
-struct FixedBitset {
-    len: usize,
-    bits: Vec<u64>,
-}
-
-impl FixedBitset {
-    pub fn new(len: usize) -> Self {
-        Self {
-            len,
-            bits: vec![0u64; (len >> 6) + 1],
-        }
-    }
-}
-
-const HI64: u64 = 1u64 << 63;
-
-impl FixedBitset {
-    fn get(&self, ix: usize) -> bool {
-        debug_assert!(ix < self.len);
-        self.bits[ix >> 6] & HI64.wrapping_shr(ix as u32) != 0
-    }
-
-    fn set(&mut self, ix: usize) {
-        debug_assert!(ix < self.len);
-        self.bits[ix >> 6] |= HI64.wrapping_shr(ix as u32);
-    }
-
-    fn set_many(&mut self, ix: usize, mask: u64) {
-        let trunc = ix & u64::BITS as usize - 1;
-        if trunc == 0 {
-            self.bits[ix >> 6] |= mask;
-        } else {
-            self.bits[ix >> 6] |= mask >> trunc;
-            self.bits[(ix >> 6) + 1] |= mask << (u64::BITS as usize - trunc);
-        }
-    }
-
-    fn clear(&mut self, ix: usize) {
-        debug_assert!(ix < self.len);
-        self.bits[ix >> 6] &= !HI64.wrapping_shr(ix as u32);
-    }
-
-    fn count_ones(&self) -> u32 {
-        self.bits.iter().copied().map(u64::count_ones).sum()
-    }
-}
-
 const BOARD_LEN: usize = 130;
 const BOARD_AREA: usize = 130 * 130;
+const HI64: u64 = 1u64 << 63;
 
 fn part1_bitset(ctx: &mut RunContext) -> eyre::Result<u64> {
     let mut walls = FixedBitset::new(BOARD_AREA);
@@ -308,6 +265,15 @@ fn part1_bitset(ctx: &mut RunContext) -> eyre::Result<u64> {
             base = n;
         }
     }
+
+    let ix = ctx
+        .input
+        .as_bytes()
+        .iter()
+        .position(|&ch| ch == b'^')
+        .unwrap();
+    y = ix / (BOARD_LEN + 1);
+    x = ix % (BOARD_LEN + 1);
 
     'outer: loop {
         loop {
@@ -351,6 +317,21 @@ fn part1_bitset(ctx: &mut RunContext) -> eyre::Result<u64> {
             x -= 1;
         }
     }
+
+    // for y in 0..BOARD_LEN {
+    //     for x in 0..BOARD_LEN {
+    //         print!(
+    //             "{}",
+    //             match (walls.get(BOARD_LEN * y + x), visited.get(BOARD_LEN * y + x)) {
+    //                 (true, true) => '?',
+    //                 (true, false) => '#',
+    //                 (false, true) => '.',
+    //                 (false, false) => ' ',
+    //             }
+    //         );
+    //     }
+    //     println!();
+    // }
 
     let total = visited.count_ones();
     Ok(total as u64)
@@ -429,6 +410,159 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
     //     }
     //     println!();
     // }
+
+    Ok(total as u64)
+}
+
+fn part2_bitset(ctx: &mut RunContext) -> eyre::Result<u64> {
+    let mut walls = FixedBitset::new(BOARD_AREA);
+    let mut walls_t = FixedBitset::new(BOARD_AREA);
+    let mut visited = FixedBitset::new(BOARD_AREA);
+    let mut x = 0;
+    let mut y = 0;
+
+    let mut acc = 0;
+    let mut base = 0;
+    let mut n = 0;
+    for &ch in ctx.input.as_bytes() {
+        if ch == b'\r' || ch == b'\n' {
+            continue;
+        }
+        acc |= (HI64 * (ch == b'#') as u64) >> (n & 63);
+        n += 1;
+        if n & 63 == 0 {
+            walls.set_many(base, acc);
+            acc = 0;
+            base = n;
+        }
+    }
+
+    let ix = ctx
+        .input
+        .as_bytes()
+        .iter()
+        .position(|&ch| ch == b'^')
+        .unwrap();
+    let start_y = ix / (BOARD_LEN + 1);
+    let start_x = ix % (BOARD_LEN + 1);
+
+    x = start_x;
+    y = start_y;
+
+    let mut candidates = Vec::with_capacity(BOARD_AREA);
+
+    'outer: loop {
+        loop {
+            visited.set(BOARD_LEN * y + x);
+            if y == 0 {
+                break 'outer;
+            }
+            if walls.get(BOARD_LEN * (y - 1) + x) {
+                break;
+            }
+            y -= 1;
+            if !visited.get(BOARD_LEN * y + x) {
+                candidates.push((x, y));
+            }
+        }
+        loop {
+            visited.set(BOARD_LEN * y + x);
+            if x == BOARD_LEN - 1 {
+                break 'outer;
+            }
+            if walls.get(BOARD_LEN * y + x + 1) {
+                break;
+            }
+            x += 1;
+            if !visited.get(BOARD_LEN * y + x) {
+                candidates.push((x, y));
+            }
+        }
+        loop {
+            visited.set(BOARD_LEN * y + x);
+            if y == BOARD_LEN - 1 {
+                break 'outer;
+            }
+            if walls.get(BOARD_LEN * (y + 1) + x) {
+                break;
+            }
+            y += 1;
+            if !visited.get(BOARD_LEN * y + x) {
+                candidates.push((x, y));
+            }
+        }
+        loop {
+            visited.set(BOARD_LEN * y + x);
+            if x == 0 {
+                break 'outer;
+            }
+            if walls.get(BOARD_LEN * y + x - 1) {
+                break;
+            }
+            x -= 1;
+            if !visited.get(BOARD_LEN * y + x) {
+                candidates.push((x, y));
+            }
+        }
+    }
+
+    let mut total = 0;
+    let mut visited_u = FixedBitset::new(BOARD_AREA);
+    for &candidate in &candidates {
+        visited_u.clear_all();
+        x = start_x;
+        y = start_y;
+        walls.set(BOARD_LEN * candidate.1 + candidate.0);
+
+        'outer: loop {
+            loop {
+                // detect cycles. if it's a cycle, then it doesnt matter when exactly we detect the cycle,
+                // just that we *do*. This allows us to only check for cycles on one axis and not waste
+                // time updating/querying/clearing visited sets for each direction.
+                if visited_u.get(BOARD_LEN * y + x) {
+                    total += 1;
+                    break 'outer;
+                }
+                visited_u.set(BOARD_LEN * y + x);
+                if y == 0 {
+                    break 'outer;
+                }
+                if walls.get(BOARD_LEN * (y - 1) + x) {
+                    break;
+                }
+                y -= 1;
+            }
+            loop {
+                if x == BOARD_LEN - 1 {
+                    break 'outer;
+                }
+                if walls.get(BOARD_LEN * y + x + 1) {
+                    break;
+                }
+                x += 1;
+            }
+            loop {
+                if y == BOARD_LEN - 1 {
+                    break 'outer;
+                }
+                if walls.get(BOARD_LEN * (y + 1) + x) {
+                    break;
+                }
+                y += 1;
+            }
+            loop {
+                if x == 0 {
+                    break 'outer;
+                }
+                if walls.get(BOARD_LEN * y + x - 1) {
+                    break;
+                }
+                x -= 1;
+            }
+        }
+
+        walls.clear(BOARD_LEN * candidate.1 + candidate.0);
+    }
 
     Ok(total as u64)
 }

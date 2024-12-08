@@ -65,6 +65,7 @@ impl RunnerRepository {
 pub type VariantRunner = fn(&mut RunContext) -> eyre::Result<u64>;
 
 mod days;
+pub mod bitset;
 
 fn main() -> eyre::Result<()> {
     let config = RunConfig::from_args_safe()?;
@@ -131,7 +132,7 @@ fn main() -> eyre::Result<()> {
         );
         samples.push(Sample {
             full: end.duration_since(start),
-            parse: ctx.parsed_timestamp.map(|ts| ts.duration_since(start)),
+            // parse: ctx.parsed_timestamp.map(|ts| ts.duration_since(start)),
         });
 
         if loop_start.elapsed() > Duration::from_secs_f64(config.rerun_time_limit_s) {
@@ -173,7 +174,7 @@ fn main() -> eyre::Result<()> {
 
 struct Sample {
     pub full: Duration,
-    pub parse: Option<Duration>,
+    // pub parse: Option<Duration>,
 }
 
 #[derive(Copy, Clone, Debug)]

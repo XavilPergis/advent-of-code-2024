@@ -1,4 +1,4 @@
-use std::sync::atomic::AtomicU64;
+use std::{sync::atomic::AtomicU64};
 
 use rayon::{iter::ParallelIterator, str::ParallelString};
 
@@ -6,6 +6,7 @@ use crate::{RunContext, RunnerRepository};
 
 pub fn add_variants(repo: &mut RunnerRepository) {
     repo.add_variant("part1", part1);
+    repo.add_variant("part1_rev", part1_rev);
     repo.add_variant("part2", part2);
     repo.add_variant("part2_parallel", part2_parallel);
 }
@@ -33,6 +34,46 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
         }
 
         if solve_part1(test_value, parts[0], &parts[1..]) {
+            total += test_value;
+        }
+    }
+    Ok(total)
+}
+
+fn solve_part1_rev(test_value: u64, acc: u64, parts: &[u64]) -> bool {
+    // if acc > test_value {
+    //     return false;
+    // }
+    let (&head, tail) = match parts.split_last() {
+        Some(res) => res,
+        None => return 0 == acc,
+    };
+
+    if test_value % head == 0 && solve_part1_rev(test_value, test_value / head, tail) {
+        return true;
+    }
+    
+    if test_value >= head && solve_part1_rev(test_value, test_value - head, tail) {
+        return true;
+    }
+
+    false
+
+    // solve_part1(test_value, acc + head, tail) || solve_part1(test_value, acc * head, tail)
+}
+
+fn part1_rev(ctx: &mut RunContext) -> eyre::Result<u64> {
+    let mut total = 0;
+    let mut parts = vec![];
+    for line in ctx.input.lines() {
+        let (test_value, tail) = line.split_once(": ").unwrap();
+        let test_value = test_value.parse::<u64>()?;
+        parts.clear();
+        for ch in tail.split_ascii_whitespace() {
+            parts.push(ch.parse::<u64>()?);
+        }
+
+        if solve_part1_rev(test_value, test_value, &parts) {
             total += test_value;
         }
     }
