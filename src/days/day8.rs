@@ -24,7 +24,7 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
     }
 
     let mut antinodes = FixedBitset::new(50 * 50);
-    for (&ch, antenna_positions) in &positions {
+    for (_, antenna_positions) in &positions {
         for i in 0..antenna_positions.len() {
             for j in i + 1..antenna_positions.len() {
                 let dx = antenna_positions[i].0 - antenna_positions[j].0;
@@ -61,7 +61,7 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
     }
 
     let mut antinodes = FixedBitset::new(50 * 50);
-    for (&ch, antenna_positions) in &positions {
+    for (_, antenna_positions) in &positions {
         for i in 0..antenna_positions.len() {
             for j in i + 1..antenna_positions.len() {
                 let dx = antenna_positions[i].0 - antenna_positions[j].0;
@@ -80,8 +80,6 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
                     xr -= dx;
                     yr -= dy;
                 }
-
-                let a2 = (antenna_positions[j].1 - dy, antenna_positions[j].0 - dx);
             }
         }
     }
@@ -156,8 +154,6 @@ fn part2_no_map(ctx: &mut RunContext) -> eyre::Result<u64> {
                     xr -= dx;
                     yr -= dy;
                 }
-
-                let a2 = (antenna_positions[j].1 - dy, antenna_positions[j].0 - dx);
             }
         }
     }

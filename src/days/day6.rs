@@ -3,10 +3,7 @@ use std::{
     ops::{Add, Index, IndexMut, Sub},
 };
 
-use crate::{
-    bitset::{self, FixedBitset},
-    RunContext, RunnerRepository,
-};
+use crate::{bitset::FixedBitset, RunContext, RunnerRepository};
 
 pub fn add_variants(repo: &mut RunnerRepository) {
     repo.add_variant("part1", part1);
@@ -247,8 +244,6 @@ const HI64: u64 = 1u64 << 63;
 fn part1_bitset(ctx: &mut RunContext) -> eyre::Result<u64> {
     let mut walls = FixedBitset::new(BOARD_AREA);
     let mut visited = FixedBitset::new(BOARD_AREA);
-    let mut x = 0;
-    let mut y = 0;
 
     let mut acc = 0;
     let mut base = 0;
@@ -272,8 +267,8 @@ fn part1_bitset(ctx: &mut RunContext) -> eyre::Result<u64> {
         .iter()
         .position(|&ch| ch == b'^')
         .unwrap();
-    y = ix / (BOARD_LEN + 1);
-    x = ix % (BOARD_LEN + 1);
+    let mut y = ix / (BOARD_LEN + 1);
+    let mut x = ix % (BOARD_LEN + 1);
 
     'outer: loop {
         loop {
@@ -416,10 +411,7 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
 
 fn part2_bitset(ctx: &mut RunContext) -> eyre::Result<u64> {
     let mut walls = FixedBitset::new(BOARD_AREA);
-    let mut walls_t = FixedBitset::new(BOARD_AREA);
     let mut visited = FixedBitset::new(BOARD_AREA);
-    let mut x = 0;
-    let mut y = 0;
 
     let mut acc = 0;
     let mut base = 0;
@@ -446,8 +438,8 @@ fn part2_bitset(ctx: &mut RunContext) -> eyre::Result<u64> {
     let start_y = ix / (BOARD_LEN + 1);
     let start_x = ix % (BOARD_LEN + 1);
 
-    x = start_x;
-    y = start_y;
+    let mut x = start_x;
+    let mut y = start_y;
 
     let mut candidates = Vec::with_capacity(BOARD_AREA);
 
