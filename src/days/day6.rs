@@ -241,7 +241,7 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
 
 const BOARD_LEN: usize = 130;
 const BOARD_AREA: usize = 130 * 130;
-const HI64: u64 = 1u64 << 63;
+// const HI64: u64 = 1u64 << 63;
 
 fn part1_bitset(ctx: &mut RunContext) -> eyre::Result<u64> {
     let mut walls = FixedBitset::new(BOARD_AREA + 64);

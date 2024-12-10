@@ -105,11 +105,20 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
         is_space = !is_space;
     }
 
+    let mut ssi = 0; // space start index
     for i in (0..files.len()).rev() {
         let file = &mut files[i];
-        for j in 0..spaces.len() {
+        let mut found_min = false;
+        for j in ssi..spaces.len() {
             let space = &mut spaces[j];
-            if space.pos < file.pos && space.size >= file.size {
+            if !found_min && space.size != 0 {
+                ssi = j;
+                found_min = true;
+            }
+            if space.pos >= file.pos {
+                break;
+            }
+            if space.size >= file.size {
                 file.pos = space.pos;
                 space.size -= file.size;
                 space.pos += file.size;
@@ -117,7 +126,6 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
             }
         }
     }
-
     let checksum: usize = files
         .iter()
         .map(|file| checksum_contiguous(file.id, file.pos, file.size))
