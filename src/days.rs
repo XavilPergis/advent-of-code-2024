@@ -8,6 +8,7 @@ pub mod day5;
 pub mod day6;
 pub mod day7;
 pub mod day8;
+pub mod day9;
 
 pub fn make_repo() -> RunnerRepository {
     let mut repo = RunnerRepository::new();
@@ -19,5 +20,6 @@ pub fn make_repo() -> RunnerRepository {
     repo.merge_day(6, day6::add_variants);
     repo.merge_day(7, day7::add_variants);
     repo.merge_day(8, day8::add_variants);
+    repo.merge_day(9, day9::add_variants);
     repo
 }
