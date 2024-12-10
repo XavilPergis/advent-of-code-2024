@@ -26,6 +26,7 @@ struct RunConfig {
 enum RunCommand {
     Run { variant: Option<String> },
     Compare { variant1: String, variant2: String },
+    List,
 }
 
 pub struct RunContext<'a> {
@@ -298,6 +299,18 @@ fn main() -> eyre::Result<()> {
                 DisplayDuration(summary2.min),
                 DisplayDuration(summary2.max)
             );
+        }
+        RunCommand::List => {
+            println!("Available Variants:");
+            let mut days: Vec<_> = repo.days.keys().copied().collect();
+            days.sort_unstable();
+            for day in days {
+                let mut variants: Vec<_> = repo.days[&day].keys().collect();
+                variants.sort_unstable();
+                for variant in variants {
+                    println!("\t- d{day}.{variant}");
+                }
+            }
         }
     }
 
