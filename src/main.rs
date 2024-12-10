@@ -5,21 +5,26 @@ use std::{
     time::{Duration, Instant},
 };
 
+use reqwest::header::{HeaderMap, HeaderValue};
 use structopt::StructOpt;
 
 #[derive(Clone, Debug, StructOpt)]
 struct RunConfig {
     #[structopt(long, short)]
-    pub day: Option<u32>,
-    #[structopt(long, short)]
-    pub variant: Option<String>,
-    #[structopt(long, short)]
     /// The file path of the input to use.
     pub input: Option<String>,
-    #[structopt(long, short, default_value = "1")]
-    pub reruns: usize,
+    #[structopt(long, short = "s", default_value = "1")]
+    pub sample_count: usize,
     #[structopt(long, short, default_value = "60")]
     pub rerun_time_limit_s: f64,
+    #[structopt(subcommand)]
+    pub subcommand: RunCommand,
+}
+
+#[derive(Clone, Debug, StructOpt)]
+enum RunCommand {
+    Run { variant: Option<String> },
+    Compare { variant1: String, variant2: String },
 }
 
 pub struct RunContext<'a> {
@@ -70,55 +75,68 @@ pub type VariantRunner = fn(&mut RunContext) -> eyre::Result<u64>;
 pub mod bitset;
 mod days;
 
-fn main() -> eyre::Result<()> {
-    let config = RunConfig::from_args_safe()?;
-    let repo = days::make_repo();
-
-    let day = match config.day {
-        Some(day) => day,
-        None => repo.days.keys().max().copied().unwrap(),
-    };
-
+fn run_variant(
+    repo: &RunnerRepository,
+    config: &RunConfig,
+    day: u32,
+    variant: &str,
+) -> eyre::Result<Vec<Sample>> {
     if !repo.days.contains_key(&day) {
         eyre::bail!("day {day} does not exist");
     }
 
     let variants = &repo.days[&day];
-    let part_name = match &config.variant {
-        Some(name) => &*name,
-        None => {
-            if variants.contains_key("part2") {
-                "part2"
-            } else if variants.contains_key("part1") {
-                "part1"
-            } else {
-                eyre::bail!("day {day} has no 'part1' or 'part2' specified")
-            }
-        }
-    };
-
-    let Some(part) = variants.get(part_name) else {
-        eyre::bail!("day{day}/{} was not found", part_name);
+    let Some(part) = variants.get(variant) else {
+        eyre::bail!("day{day}/{} was not found", variant);
     };
 
     let file_path = config
         .input
+        .clone()
         .unwrap_or_else(|| format!("inputs/day{day}.txt"));
-    let input = std::fs::read_to_string(file_path)?;
-    let mut input2 = vec![0u8; input.len()];
 
-    println!("running day{day}/{}", part_name);
+    if !std::fs::exists(&file_path)? {
+        let Ok(session_token) = std::env::var("AOC_TOKEN") else {
+            eyre::bail!("AOC_TOKEN env var not specified, could not fetch missing input.");
+        };
+
+        let year = 2024;
+
+        let mut headers = HeaderMap::new();
+        let mut cookie = HeaderValue::from_str(&session_token)
+            .map_err(|_| eyre::eyre!("invalid session token: non-ascii"))?;
+        cookie.set_sensitive(true);
+        headers.insert("Cookie", cookie);
+
+        println!("\x1b[31mfetching missing input for day {day}\x1b[0m");
+
+        let res = reqwest::blocking::Client::builder()
+            .default_headers(headers)
+            .build()?
+            .get(format!("https://adventofcode.com/{year}/day/{day}/input"))
+            .send()?;
+
+        std::fs::write(&file_path, &res.bytes()?[..])?;
+    }
+
+    let input = std::fs::read_to_string(&file_path)?;
+    let mut scratch = vec![0u8; input.len()];
+
+    println!(
+        "\x1b[32mrunning\x1b[0m [\x1b[34m{} iters\x1b[0m] day{day}/{}",
+        config.sample_count, variant
+    );
     let mut ctx = RunContext {
         input: &input,
-        input_scratch: &mut input2,
+        input_scratch: &mut scratch,
         begin_timestamp: None,
         parsed_timestamp: None,
         complete_timestamp: None,
     };
 
-    let mut samples = Vec::with_capacity(config.reruns);
+    let mut samples = Vec::with_capacity(config.sample_count);
     let loop_start = Instant::now();
-    for i in 0..config.reruns {
+    for i in 0..config.sample_count {
         ctx.input_scratch.clone_from_slice(input.as_bytes());
 
         ctx.begin_timestamp = Some(Instant::now());
@@ -147,38 +165,139 @@ fn main() -> eyre::Result<()> {
         }
     }
 
-    samples.sort_unstable_by_key(|sample| sample.full);
-    let mut full_total = Duration::ZERO;
-    let mut full_min = Duration::MAX;
-    let mut full_max = Duration::ZERO;
-    for sample in &samples {
-        full_total += sample.full;
-        full_min = Duration::min(full_min, sample.full);
-        full_max = Duration::max(full_max, sample.full);
+    Ok(samples)
+}
+
+fn parse_variant(variant: &str) -> eyre::Result<(u32, &str)> {
+    let Some((day, variant)) = variant.split_once('.') else {
+        eyre::bail!("invalid variant '{variant}'");
+    };
+    let Ok(day) = day.trim_start_matches('d').parse::<u32>() else {
+        eyre::bail!("invalid day '{day}'");
+    };
+    Ok((day, variant))
+}
+
+#[derive(Copy, Clone, Debug)]
+struct SampleSummary {
+    pub count: usize,
+    pub mean: Duration,
+    pub median: Duration,
+    pub min: Duration,
+    pub max: Duration,
+}
+
+impl SampleSummary {
+    pub fn summarize(samples: &[Sample]) -> SampleSummary {
+        let mut total = Duration::ZERO;
+        let mut min = Duration::MAX;
+        let mut max = Duration::ZERO;
+        for sample in samples {
+            total += sample.full;
+            min = Duration::min(min, sample.full);
+            max = Duration::max(max, sample.full);
+        }
+        let mut samples = samples.iter().copied().collect::<Vec<_>>();
+        samples.sort_unstable_by_key(|sample| sample.full);
+        let median = samples[(samples.len() - 1) / 2].full;
+
+        SampleSummary {
+            count: samples.len(),
+            mean: total / samples.len() as u32,
+            median,
+            min,
+            max,
+        }
     }
-    let full_median = samples[(samples.len() - 1) / 2].full;
-    println!(
-        "n={}, average={}, median={}, min={}, max={}",
-        samples.len(),
-        DisplayDuration(full_total / samples.len() as u32),
-        DisplayDuration(full_median),
-        DisplayDuration(full_min),
-        DisplayDuration(full_max)
-    );
+}
 
-    // let elapsed = ctx
-    //     .complete_timestamp
-    //     .unwrap()
-    //     .duration_since(ctx.begin_timestamp.unwrap());
-    // println!("finished in {}", DisplayDuration(elapsed));
+fn main() -> eyre::Result<()> {
+    dotenv::dotenv().ok();
 
-    // if let Some(parse_ts) = ctx.parsed_timestamp {
-    //     let elapsed = parse_ts.duration_since(ctx.begin_timestamp.unwrap());
-    //     println!("parsed in {}", DisplayDuration(elapsed));
-    // }
+    let config = RunConfig::from_args_safe()?;
+    let repo = days::make_repo();
+
+    match &config.subcommand {
+        RunCommand::Run { variant } => {
+            let (day, variant) = if let Some(variant) = variant {
+                parse_variant(&variant)?
+            } else {
+                let max_day = repo.days.keys().max().copied().unwrap();
+                let part_name = match &variant {
+                    Some(name) => &*name,
+                    None => {
+                        if repo.days[&max_day].contains_key("part2") {
+                            "part2"
+                        } else if repo.days[&max_day].contains_key("part1") {
+                            "part1"
+                        } else {
+                            eyre::bail!("day {max_day} has no 'part1' or 'part2' specified")
+                        }
+                    }
+                };
+                (max_day as u32, part_name)
+            };
+
+            let samples = run_variant(&repo, &config, day, variant)?;
+            let summary = SampleSummary::summarize(&samples);
+
+            println!(
+                "[\x1b[32msamples\x1b[0m {}] [\x1b[32mmean\x1b[0m {}] [\x1b[32mmedian\x1b[0m {}] [\x1b[32mextrema\x1b[0m {} - {}]",
+                summary.count,
+                DisplayDuration(summary.mean),
+                DisplayDuration(summary.median),
+                DisplayDuration(summary.min),
+                DisplayDuration(summary.max)
+            );
+        }
+        RunCommand::Compare { variant1, variant2 } => {
+            // it might be cool to benchmark by continually starting child processes and using ipc
+            // to get the results, so that funky stuff like code pages being better or worse aligned
+            // doesnt muddy the results as much. but idk how significant the effect of that stuff is.
+
+            let (day1, part1) = parse_variant(&variant1)?;
+            let (day2, part2) = parse_variant(&variant2)?;
+            let samples1 = run_variant(&repo, &config, day1, part1)?;
+            let samples2 = run_variant(&repo, &config, day2, part2)?;
+
+            let summary1 = SampleSummary::summarize(&samples1);
+            let summary2 = SampleSummary::summarize(&samples2);
+
+            fn hl(x: bool) -> &'static str {
+                match x {
+                    true => "\x1b[32m",
+                    false => "\x1b[31m",
+                }
+            }
+
+            println!(
+                "[\x1b[32msamples\x1b[0m {}] [\x1b[32mmean\x1b[0m {}{}\x1b[0m] [\x1b[32mmedian\x1b[0m {}{}\x1b[0m] [\x1b[32mextrema\x1b[0m {} - {}] \x1b[34m{variant1}\x1b[0m",
+                summary1.count,
+                hl(summary1.mean < summary2.mean),
+                DisplayDuration(summary1.mean),
+                hl(summary1.median < summary2.median),
+                DisplayDuration(summary1.median),
+                DisplayDuration(summary1.min),
+                DisplayDuration(summary1.max)
+            );
+
+            println!(
+                "[\x1b[32msamples\x1b[0m {}] [\x1b[32mmean\x1b[0m {}{}\x1b[0m] [\x1b[32mmedian\x1b[0m {}{}\x1b[0m] [\x1b[32mextrema\x1b[0m {} - {}] \x1b[34m{variant2}\x1b[0m",
+                summary2.count,
+                hl(summary2.mean < summary1.mean),
+                DisplayDuration(summary2.mean),
+                hl(summary2.median < summary1.median),
+                DisplayDuration(summary2.median),
+                DisplayDuration(summary2.min),
+                DisplayDuration(summary2.max)
+            );
+        }
+    }
+
     Ok(())
 }
 
+#[derive(Copy, Clone, Debug)]
 struct Sample {
     pub full: Duration,
     // pub parse: Option<Duration>,
