@@ -76,7 +76,7 @@ impl FixedBitset {
     }
 
     pub fn set_many(&mut self, ix: usize, mask: u64) {
-        debug_assert!(ix + 64 < self.len);
+        assert!(ix + 64 < self.len, "ix={ix}, len={}", self.len);
         let trunc = ix & u64::BITS as usize - 1;
         if trunc == 0 {
             self.bits[ix >> SHIFT] |= mask;

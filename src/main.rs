@@ -1,3 +1,5 @@
+#![feature(portable_simd)]
+
 use std::{
     collections::HashMap,
     time::{Duration, Instant},
@@ -22,6 +24,7 @@ struct RunConfig {
 
 pub struct RunContext<'a> {
     pub input: &'a str,
+    pub input_scratch: &'a mut [u8],
     begin_timestamp: Option<Instant>,
     parsed_timestamp: Option<Instant>,
     complete_timestamp: Option<Instant>,
@@ -64,8 +67,8 @@ impl RunnerRepository {
 
 pub type VariantRunner = fn(&mut RunContext) -> eyre::Result<u64>;
 
-mod days;
 pub mod bitset;
+mod days;
 
 fn main() -> eyre::Result<()> {
     let config = RunConfig::from_args_safe()?;
@@ -102,10 +105,12 @@ fn main() -> eyre::Result<()> {
         .input
         .unwrap_or_else(|| format!("inputs/day{day}.txt"));
     let input = std::fs::read_to_string(file_path)?;
+    let mut input2 = vec![0u8; input.len()];
 
     println!("running day{day}/{}", part_name);
     let mut ctx = RunContext {
         input: &input,
+        input_scratch: &mut input2,
         begin_timestamp: None,
         parsed_timestamp: None,
         complete_timestamp: None,
@@ -114,6 +119,8 @@ fn main() -> eyre::Result<()> {
     let mut samples = Vec::with_capacity(config.reruns);
     let loop_start = Instant::now();
     for i in 0..config.reruns {
+        ctx.input_scratch.clone_from_slice(input.as_bytes());
+
         ctx.begin_timestamp = Some(Instant::now());
         let res = part(&mut ctx);
         ctx.complete_timestamp = Some(Instant::now());

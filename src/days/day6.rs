@@ -1,6 +1,7 @@
 use std::{
     collections::HashSet,
     ops::{Add, Index, IndexMut, Sub},
+    simd::{cmp::SimdPartialEq, u8x2, u8x32, u8x4, usizex4},
 };
 
 use crate::{bitset::FixedBitset, RunContext, RunnerRepository};
@@ -8,6 +9,7 @@ use crate::{bitset::FixedBitset, RunContext, RunnerRepository};
 pub fn add_variants(repo: &mut RunnerRepository) {
     repo.add_variant("part1", part1);
     repo.add_variant("part1_bitset", part1_bitset);
+    repo.add_variant("part1_no_parse_simd", part1_no_parse_simd);
     repo.add_variant("part2", part2);
     repo.add_variant("part2_bitset", part2_bitset);
 }
@@ -242,23 +244,32 @@ const BOARD_AREA: usize = 130 * 130;
 const HI64: u64 = 1u64 << 63;
 
 fn part1_bitset(ctx: &mut RunContext) -> eyre::Result<u64> {
-    let mut walls = FixedBitset::new(BOARD_AREA);
-    let mut visited = FixedBitset::new(BOARD_AREA);
+    let mut walls = FixedBitset::new(BOARD_AREA + 64);
+    let mut visited = FixedBitset::new(BOARD_AREA + 64);
 
-    let mut acc = 0;
-    let mut base = 0;
     let mut n = 0;
-    for &ch in ctx.input.as_bytes() {
-        if ch == b'\r' || ch == b'\n' {
-            continue;
-        }
-        acc |= (HI64 * (ch == b'#') as u64) >> (n & 63);
-        n += 1;
-        if n & 63 == 0 {
-            walls.set_many(base, acc);
-            acc = 0;
-            base = n;
-        }
+
+    let input = ctx.input.as_bytes();
+    let mut ix = 0;
+    while ix < ctx.input.len() {
+        let chunk1 = u8x32::load_or_default(&input[ix..]);
+        let chunk2 = u8x32::load_or_default(&input[ix + 32..]);
+        let chunk3 = u8x32::load_or_default(&input[ix + 64..]);
+        let chunk4 = u8x32::load_or_default(&input[ix + 96..]);
+        let chunk5 = u8x2::load_or_default(&input[ix + 128..]);
+        let mask1 = (chunk1.simd_eq(u8x32::splat(b'#')).to_bitmask() as u32).reverse_bits() as u64;
+        let mask2 = (chunk2.simd_eq(u8x32::splat(b'#')).to_bitmask() as u32).reverse_bits() as u64;
+        let mask3 = (chunk3.simd_eq(u8x32::splat(b'#')).to_bitmask() as u32).reverse_bits() as u64;
+        let mask4 = (chunk4.simd_eq(u8x32::splat(b'#')).to_bitmask() as u32).reverse_bits() as u64;
+        let mask5 = (chunk5.simd_eq(u8x2::splat(b'#')).to_bitmask() as u32).reverse_bits() as u64;
+
+        walls.set_many(n + 0, (mask1 << 32) | mask2);
+        walls.set_many(n + 64, (mask3 << 32) | mask4);
+        walls.set_many(n + 128, mask5 << 62);
+
+        n += 130;
+        // skip trailing `\n`
+        ix += 131;
     }
 
     let ix = ctx
@@ -327,6 +338,193 @@ fn part1_bitset(ctx: &mut RunContext) -> eyre::Result<u64> {
     //     }
     //     println!();
     // }
+
+    let total = visited.count_ones();
+    Ok(total as u64)
+}
+
+fn part1_no_parse_simd(ctx: &mut RunContext) -> eyre::Result<u64> {
+    let mut visited = FixedBitset::new(BOARD_AREA + 64);
+
+    let input = ctx.input.as_bytes();
+    // this seems to optimize well; manual simd was worse!
+    let ix = input.iter().position(|&ch| ch == b'^').unwrap();
+    let mut y = ix / (BOARD_LEN + 1);
+    let mut x = ix % (BOARD_LEN + 1);
+
+    'outer: loop {
+        loop {
+            visited.set(BOARD_LEN * y + x);
+            if y == 0 {
+                break 'outer;
+            }
+
+            if y >= 4 {
+                let ys = usizex4::from_array([y - 1, y - 2, y - 3, y - 4]);
+                let indices = usizex4::splat(BOARD_LEN + 1) * ys + usizex4::splat(x);
+                let mask =
+                    u8x4::gather_or_default(ctx.input_scratch, indices).simd_eq(u8x4::splat(b'#'));
+                if let Some(ix) = mask.first_set() {
+                    y -= ix;
+                    break;
+                } else {
+                    y -= 4;
+                }
+            } else {
+                if ctx.input_scratch[(BOARD_LEN + 1) * (y - 1) + x] == b'#' {
+                    break;
+                }
+                y -= 1;
+            }
+        }
+        loop {
+            visited.set(BOARD_LEN * y + x);
+            if x == BOARD_LEN - 1 {
+                break 'outer;
+            }
+            if x <= BOARD_LEN - 5 {
+                let xs = usizex4::from_array([x + 1, x + 2, x + 3, x + 4]);
+                let indices = usizex4::splat((BOARD_LEN + 1) * y) + xs;
+                let mask =
+                    u8x4::gather_or_default(ctx.input_scratch, indices).simd_eq(u8x4::splat(b'#'));
+                if let Some(ix) = mask.first_set() {
+                    x += ix;
+                    break;
+                } else {
+                    x += 4;
+                }
+            } else {
+                if ctx.input_scratch[(BOARD_LEN + 1) * y + x + 1] == b'#' {
+                    break;
+                }
+                x += 1;
+            }
+        }
+        loop {
+            visited.set(BOARD_LEN * y + x);
+            if y == BOARD_LEN - 1 {
+                break 'outer;
+            }
+            if y <= BOARD_LEN - 5 {
+                let ys = usizex4::from_array([y + 1, y + 2, y + 3, y + 4]);
+                let indices = usizex4::splat(BOARD_LEN + 1) * ys + usizex4::splat(x);
+                let mask =
+                    u8x4::gather_or_default(ctx.input_scratch, indices).simd_eq(u8x4::splat(b'#'));
+                if let Some(ix) = mask.first_set() {
+                    y += ix;
+                    break;
+                } else {
+                    y += 4;
+                }
+            } else {
+                if ctx.input_scratch[(BOARD_LEN + 1) * (y + 1) + x] == b'#' {
+                    break;
+                }
+                y += 1;
+            }
+        }
+        loop {
+            visited.set(BOARD_LEN * y + x);
+            if x == 0 {
+                break 'outer;
+            }
+            if x >= 4 {
+                let xs = usizex4::from_array([x - 1, x - 2, x - 3, x - 4]);
+                let indices = usizex4::splat((BOARD_LEN + 1) * y) + xs;
+                let mask =
+                    u8x4::gather_or_default(ctx.input_scratch, indices).simd_eq(u8x4::splat(b'#'));
+                if let Some(ix) = mask.first_set() {
+                    x -= ix;
+                    break;
+                } else {
+                    x -= 4;
+                }
+            } else {
+                if ctx.input_scratch[(BOARD_LEN + 1) * y + x - 1] == b'#' {
+                    break;
+                }
+                x -= 1;
+            }
+        }
+    }
+    // 'outer: loop {
+    //     loop {
+    //         visited.set(BOARD_LEN * y + x);
+    //         if y == 0 {
+    //             break 'outer;
+    //         }
+
+    //         // if y >= 4 {
+    //         //     let ys = usizex4::from_array([y - 1, y - 2, y - 3, y - 4]);
+    //         //     let indices = usizex4::splat(BOARD_LEN + 1) * ys + usizex4::splat(x);
+    //         //     let mask = u8x4::gather_or_default(input, indices).simd_eq(u8x4::splat(b'#'));
+    //         //     if let Some(ix) = mask.first_set() {
+    //         //         y -= ix;
+    //         //         break;
+    //         //     } else {
+    //         //         y -= 4;
+    //         //     }
+    //         // } else {
+    //         //     if input[(BOARD_LEN + 1) * (y - 1) + x] == b'#' {
+    //         //         break;
+    //         //     }
+    //         //     y -= 1;
+    //         // }
+
+    //         if input[(BOARD_LEN + 1) * (y - 1) + x] == b'#' {
+    //             break;
+    //         }
+    //         y -= 1;
+    //     }
+    //     loop {
+    //         unsafe { visited.set_unchecked(BOARD_LEN * y + x) };
+    //         if x == BOARD_LEN - 1 {
+    //             break 'outer;
+    //         }
+    //         if *unsafe { input.get_unchecked((BOARD_LEN + 1) * y + x + 1) } == b'#' {
+    //             break;
+    //         }
+    //         x += 1;
+    //     }
+    //     loop {
+    //         unsafe { visited.set_unchecked(BOARD_LEN * y + x) };
+    //         if y == BOARD_LEN - 1 {
+    //             break 'outer;
+    //         }
+    //         if *unsafe { input.get_unchecked((BOARD_LEN + 1) * (y + 1) + x) } == b'#' {
+    //             break;
+    //         }
+    //         y += 1;
+    //     }
+    //     loop {
+    //         unsafe { visited.set_unchecked(BOARD_LEN * y + x) };
+    //         if x == 0 {
+    //             break 'outer;
+    //         }
+    //         if *unsafe { input.get_unchecked((BOARD_LEN + 1) * y + x - 1) } == b'#' {
+    //             break;
+    //         }
+    //         x -= 1;
+    //     }
+    // }
+
+    for y in 0..BOARD_LEN {
+        for x in 0..BOARD_LEN {
+            print!(
+                "{}",
+                match (
+                    input[(BOARD_LEN + 1) * y + x] == b'#',
+                    visited.get(BOARD_LEN * y + x)
+                ) {
+                    (true, true) => '?',
+                    (true, false) => '#',
+                    (false, true) => '.',
+                    (false, false) => ' ',
+                }
+            );
+        }
+        println!();
+    }
 
     let total = visited.count_ones();
     Ok(total as u64)
@@ -410,24 +608,7 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
 }
 
 fn part2_bitset(ctx: &mut RunContext) -> eyre::Result<u64> {
-    let mut walls = FixedBitset::new(BOARD_AREA);
     let mut visited = FixedBitset::new(BOARD_AREA);
-
-    let mut acc = 0;
-    let mut base = 0;
-    let mut n = 0;
-    for &ch in ctx.input.as_bytes() {
-        if ch == b'\r' || ch == b'\n' {
-            continue;
-        }
-        acc |= (HI64 * (ch == b'#') as u64) >> (n & 63);
-        n += 1;
-        if n & 63 == 0 {
-            walls.set_many(base, acc);
-            acc = 0;
-            base = n;
-        }
-    }
 
     let ix = ctx
         .input
@@ -449,7 +630,7 @@ fn part2_bitset(ctx: &mut RunContext) -> eyre::Result<u64> {
             if y == 0 {
                 break 'outer;
             }
-            if walls.get(BOARD_LEN * (y - 1) + x) {
+            if ctx.input_scratch[(BOARD_LEN + 1) * (y - 1) + x] == b'#' {
                 break;
             }
             y -= 1;
@@ -462,7 +643,7 @@ fn part2_bitset(ctx: &mut RunContext) -> eyre::Result<u64> {
             if x == BOARD_LEN - 1 {
                 break 'outer;
             }
-            if walls.get(BOARD_LEN * y + x + 1) {
+            if ctx.input_scratch[(BOARD_LEN + 1) * y + x + 1] == b'#' {
                 break;
             }
             x += 1;
@@ -475,7 +656,7 @@ fn part2_bitset(ctx: &mut RunContext) -> eyre::Result<u64> {
             if y == BOARD_LEN - 1 {
                 break 'outer;
             }
-            if walls.get(BOARD_LEN * (y + 1) + x) {
+            if ctx.input_scratch[(BOARD_LEN + 1) * (y + 1) + x] == b'#' {
                 break;
             }
             y += 1;
@@ -488,7 +669,7 @@ fn part2_bitset(ctx: &mut RunContext) -> eyre::Result<u64> {
             if x == 0 {
                 break 'outer;
             }
-            if walls.get(BOARD_LEN * y + x - 1) {
+            if ctx.input_scratch[(BOARD_LEN + 1) * y + x - 1] == b'#' {
                 break;
             }
             x -= 1;
@@ -504,7 +685,117 @@ fn part2_bitset(ctx: &mut RunContext) -> eyre::Result<u64> {
         visited_u.clear_all();
         x = start_x;
         y = start_y;
-        walls.set(BOARD_LEN * candidate.1 + candidate.0);
+
+        let prev = ctx.input_scratch[(BOARD_LEN + 1) * candidate.1 + candidate.0];
+        ctx.input_scratch[(BOARD_LEN + 1) * candidate.1 + candidate.0] = b'#';
+        // walls.set(BOARD_LEN * candidate.1 + candidate.0);
+
+        // 'outer: loop {
+        //     loop {
+        //         // detect cycles. if it's a cycle, then it doesnt matter when exactly we detect the cycle,
+        //         // just that we *do*. This allows us to only check for cycles on one axis and not waste
+        //         // time updating/querying/clearing visited sets for each direction.
+        //         if visited_u.get(BOARD_LEN * y + x) {
+        //             total += 1;
+        //             break 'outer;
+        //         }
+        //         visited_u.set(BOARD_LEN * y + x);
+        //         if y == 0 {
+        //             break 'outer;
+        //         }
+
+        //         if y >= 4 {
+        //             let (vx, vy) = (usizex4::splat(x), usizex4::splat(y));
+        //             let indices = usizex4::splat(BOARD_LEN + 1)
+        //                 * (vy - usizex4::from_array([1, 2, 3, 4]))
+        //                 + vx;
+        //             let mask = u8x4::gather_or_default(ctx.input_scratch, indices)
+        //                 .simd_eq(u8x4::splat(b'#'));
+
+        //             if let Some(ix) = mask.first_set() {
+        //                 y -= ix;
+        //                 break;
+        //             } else {
+        //                 y -= 4;
+        //             }
+        //         } else {
+        //             if ctx.input_scratch[(BOARD_LEN + 1) * (y - 1) + x] == b'#' {
+        //                 break;
+        //             }
+        //             y -= 1;
+        //         }
+        //     }
+        //     loop {
+        //         if x == BOARD_LEN - 1 {
+        //             break 'outer;
+        //         }
+        //         if x <= BOARD_LEN - 5 {
+        //             let (vx, vy) = (usizex4::splat(x), usizex4::splat(y));
+        //             let indices =
+        //                 usizex4::splat(BOARD_LEN + 1) * vy + vx + usizex4::from_array([1, 2, 3, 4]);
+        //             let mask = u8x4::gather_or_default(ctx.input_scratch, indices)
+        //                 .simd_eq(u8x4::splat(b'#'));
+        //             if let Some(ix) = mask.first_set() {
+        //                 x += ix;
+        //                 break;
+        //             } else {
+        //                 x += 4;
+        //             }
+        //         } else {
+        //             if ctx.input_scratch[(BOARD_LEN + 1) * y + x + 1] == b'#' {
+        //                 break;
+        //             }
+        //             x += 1;
+        //         }
+        //     }
+        //     loop {
+        //         if y == BOARD_LEN - 1 {
+        //             break 'outer;
+        //         }
+        //         if y <= BOARD_LEN - 5 {
+        //             let (vx, vy) = (usizex4::splat(x), usizex4::splat(y));
+        //             let indices = usizex4::splat(BOARD_LEN + 1)
+        //                 * (vy + usizex4::from_array([1, 2, 3, 4]))
+        //                 + vx;
+        //             let mask = u8x4::gather_or_default(ctx.input_scratch, indices)
+        //                 .simd_eq(u8x4::splat(b'#'));
+        //             if let Some(ix) = mask.first_set() {
+        //                 y += ix;
+        //                 break;
+        //             } else {
+        //                 y += 4;
+        //             }
+        //         } else {
+        //             if ctx.input_scratch[(BOARD_LEN + 1) * (y + 1) + x] == b'#' {
+        //                 break;
+        //             }
+        //             y += 1;
+        //         }
+        //     }
+        //     loop {
+        //         if x == 0 {
+        //             break 'outer;
+        //         }
+        //         if x >= 4 {
+        //             let (vx, vy) = (usizex4::splat(x), usizex4::splat(y));
+        //             let indices =
+        //                 usizex4::splat(BOARD_LEN + 1) * vy + vx - usizex4::from_array([1, 2, 3, 4]);
+        //             let mask = u8x4::gather_or_default(ctx.input_scratch, indices)
+        //                 .simd_eq(u8x4::splat(b'#'));
+        //             if let Some(ix) = mask.first_set() {
+        //                 x -= ix;
+        //                 break;
+        //             } else {
+        //                 x -= 4;
+        //             }
+        //         } else {
+        //             if ctx.input_scratch[(BOARD_LEN + 1) * y + x - 1] == b'#' {
+        //                 break;
+        //             }
+        //             x -= 1;
+        //         }
+        //     }
+        // }
 
         'outer: loop {
             loop {
@@ -519,7 +810,7 @@ fn part2_bitset(ctx: &mut RunContext) -> eyre::Result<u64> {
                 if y == 0 {
                     break 'outer;
                 }
-                if walls.get(BOARD_LEN * (y - 1) + x) {
+                if ctx.input_scratch[(BOARD_LEN + 1) * (y - 1) + x] == b'#' {
                     break;
                 }
                 y -= 1;
@@ -528,7 +819,7 @@ fn part2_bitset(ctx: &mut RunContext) -> eyre::Result<u64> {
                 if x == BOARD_LEN - 1 {
                     break 'outer;
                 }
-                if walls.get(BOARD_LEN * y + x + 1) {
+                if ctx.input_scratch[(BOARD_LEN + 1) * y + x + 1] == b'#' {
                     break;
                 }
                 x += 1;
@@ -537,7 +828,7 @@ fn part2_bitset(ctx: &mut RunContext) -> eyre::Result<u64> {
                 if y == BOARD_LEN - 1 {
                     break 'outer;
                 }
-                if walls.get(BOARD_LEN * (y + 1) + x) {
+                if ctx.input_scratch[(BOARD_LEN + 1) * (y + 1) + x] == b'#' {
                     break;
                 }
                 y += 1;
@@ -546,14 +837,15 @@ fn part2_bitset(ctx: &mut RunContext) -> eyre::Result<u64> {
                 if x == 0 {
                     break 'outer;
                 }
-                if walls.get(BOARD_LEN * y + x - 1) {
+                if ctx.input_scratch[(BOARD_LEN + 1) * y + x - 1] == b'#' {
                     break;
                 }
                 x -= 1;
             }
         }
 
-        walls.clear(BOARD_LEN * candidate.1 + candidate.0);
+        // walls.clear(BOARD_LEN * candidate.1 + candidate.0);
+        ctx.input_scratch[(BOARD_LEN + 1) * candidate.1 + candidate.0] = prev;
     }
 
     Ok(total as u64)
