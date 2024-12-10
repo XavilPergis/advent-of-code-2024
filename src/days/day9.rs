@@ -4,6 +4,7 @@ use crate::{RunContext, RunnerRepository};
 
 pub fn add_variants(repo: &mut RunnerRepository) {
     repo.add_variant("part1", part1);
+    repo.add_variant("part1_stackless", part1_stackless);
     repo.add_variant("part2", part2);
 }
 
@@ -63,6 +64,47 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
     // // NOTE: the arithmetic sequence formula has a 0.5 factor, so we sum up twice the value for each
     // // entry and divide it out here. prolly doesnt actually matter that much for perf lol.
     // sum /= 2;
+
+    Ok(sum as u64)
+}
+
+fn part1_stackless(ctx: &mut RunContext) -> eyre::Result<u64> {
+    let input = ctx.input.trim().as_bytes();
+
+    // odd length means last elem represents a file.
+    assert!(input.len() & 1 == 1);
+
+    let mut sum = 0;
+    let mut pos = 0;
+
+    let mut fi = 0;
+    let mut bi = input.len() - 1;
+    while fi + 1 <= bi {
+        let size = (ctx.input_scratch[fi] - b'0') as usize;
+        sum += checksum_contiguous(fi / 2, pos, size);
+        pos += size;
+
+        let mut space_size = (ctx.input_scratch[fi + 1] - b'0') as usize;
+        loop {
+            let file_size = (ctx.input_scratch[bi] - b'0') as usize;
+            if space_size >= file_size {
+                sum += checksum_contiguous(bi / 2, pos, file_size);
+                pos += file_size;
+                space_size -= file_size;
+                bi -= 2;
+            } else {
+                sum += checksum_contiguous(bi / 2, pos, space_size);
+                pos += space_size;
+                ctx.input_scratch[bi] = (file_size - space_size) as u8 + b'0';
+                break;
+            }
+        }
+
+        fi += 2;
+    }
+
+    let size = (ctx.input_scratch[fi] - b'0') as usize;
+    sum += checksum_contiguous(fi / 2, pos, size);
 
     Ok(sum as u64)
 }
