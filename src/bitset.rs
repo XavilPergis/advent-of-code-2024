@@ -1,17 +1,17 @@
 #[derive(Clone, Debug)]
-pub struct FixedBitset {
+pub struct Bitset {
     len: usize,
     bits: Vec<u64>,
 }
 
-impl FixedBitset {
+impl Bitset {
     pub fn new(len: usize) -> Self {
         Self {
             len,
             bits: vec![0u64; (len >> SHIFT) + 1],
         }
     }
-    
+
     pub fn clear_all(&mut self) {
         self.bits.fill(0);
     }
@@ -20,7 +20,7 @@ impl FixedBitset {
 const HI64: u64 = 1u64 << 63;
 const SHIFT: u32 = 6;
 
-impl FixedBitset {
+impl Bitset {
     pub fn len(&self) -> usize {
         self.len
     }
@@ -128,7 +128,7 @@ mod tests {
     #[test]
     fn test_one_count() {
         for i in 0..256 {
-            let mut bitset = FixedBitset::new(i);
+            let mut bitset = Bitset::new(i);
             bitset.bits_mut().fill(u64::MAX);
             assert_eq!(bitset.count_ones(), i as u32);
         }
@@ -137,20 +137,20 @@ mod tests {
     #[test]
     fn test_zero_count() {
         for i in 0..256 {
-            let bitset = FixedBitset::new(i);
+            let bitset = Bitset::new(i);
             assert_eq!(bitset.count_zeros(), i as u32);
         }
     }
 }
 
-pub fn copy(dst: &mut FixedBitset, src: &FixedBitset) {
+pub fn copy(dst: &mut Bitset, src: &Bitset) {
     assert_eq!(dst.len, src.len);
     unsafe { std::ptr::copy_nonoverlapping(&src.bits, &mut dst.bits, src.bits.len()) };
 }
 
 macro_rules! bitwise_impl {
     ($trait:ident, $op:ident, $binop:ident) => {
-        impl<'a> $trait<&'a FixedBitset> for FixedBitset {
+        impl<'a> $trait<&'a Bitset> for Bitset {
             fn $op(&mut self, rhs: &'a Self) {
                 assert_eq!(self.len, rhs.len);
                 for i in 0..self.bits.len() {
@@ -159,8 +159,8 @@ macro_rules! bitwise_impl {
             }
         }
 
-        impl FixedBitset {
-            pub fn $binop(out: &mut FixedBitset, lhs: &FixedBitset, rhs: &FixedBitset) {
+        impl Bitset {
+            pub fn $binop(out: &mut Bitset, lhs: &Bitset, rhs: &Bitset) {
                 assert_eq!(out.len, lhs.len);
                 assert_eq!(out.len, rhs.len);
                 for i in 0..out.bits.len() {
@@ -175,7 +175,7 @@ macro_rules! bitwise_impl {
 }
 
 mod ops {
-    use super::FixedBitset;
+    use super::Bitset;
     use std::ops::{BitAnd, BitOr, BitXor};
     use std::ops::{BitAndAssign, BitOrAssign, BitXorAssign};
     bitwise_impl!(BitAndAssign, bitand_assign, bitand);

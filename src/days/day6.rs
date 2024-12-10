@@ -4,7 +4,7 @@ use std::{
     simd::{cmp::SimdPartialEq, u8x2, u8x32, u8x4, usizex4},
 };
 
-use crate::{bitset::FixedBitset, RunContext, RunnerRepository};
+use crate::{bitset::Bitset, RunContext, RunnerRepository};
 
 pub fn add_variants(repo: &mut RunnerRepository) {
     repo.add_variant("part1", part1);
@@ -244,8 +244,8 @@ const BOARD_AREA: usize = 130 * 130;
 // const HI64: u64 = 1u64 << 63;
 
 fn part1_bitset(ctx: &mut RunContext) -> eyre::Result<u64> {
-    let mut walls = FixedBitset::new(BOARD_AREA + 64);
-    let mut visited = FixedBitset::new(BOARD_AREA + 64);
+    let mut walls = Bitset::new(BOARD_AREA + 64);
+    let mut visited = Bitset::new(BOARD_AREA + 64);
 
     let mut n = 0;
 
@@ -344,7 +344,7 @@ fn part1_bitset(ctx: &mut RunContext) -> eyre::Result<u64> {
 }
 
 fn part1_no_parse_simd(ctx: &mut RunContext) -> eyre::Result<u64> {
-    let mut visited = FixedBitset::new(BOARD_AREA + 64);
+    let mut visited = Bitset::new(BOARD_AREA + 64);
 
     let input = ctx.input.as_bytes();
     // this seems to optimize well; manual simd was worse!
@@ -608,7 +608,7 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
 }
 
 fn part2_bitset(ctx: &mut RunContext) -> eyre::Result<u64> {
-    let mut visited = FixedBitset::new(BOARD_AREA);
+    let mut visited = Bitset::new(BOARD_AREA);
 
     let ix = ctx
         .input
@@ -680,7 +680,7 @@ fn part2_bitset(ctx: &mut RunContext) -> eyre::Result<u64> {
     }
 
     let mut total = 0;
-    let mut visited_u = FixedBitset::new(BOARD_AREA);
+    let mut visited_u = Bitset::new(BOARD_AREA);
     for &candidate in &candidates {
         visited_u.clear_all();
         x = start_x;

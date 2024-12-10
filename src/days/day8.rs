@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{bitset::FixedBitset, RunContext, RunnerRepository};
+use crate::{bitset::Bitset, RunContext, RunnerRepository};
 
 pub fn add_variants(repo: &mut RunnerRepository) {
     repo.add_variant("part1", part1);
@@ -23,7 +23,7 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
         }
     }
 
-    let mut antinodes = FixedBitset::new(50 * 50);
+    let mut antinodes = Bitset::new(50 * 50);
     for (_, antenna_positions) in &positions {
         for i in 0..antenna_positions.len() {
             for j in i + 1..antenna_positions.len() {
@@ -60,7 +60,7 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
         }
     }
 
-    let mut antinodes = FixedBitset::new(50 * 50);
+    let mut antinodes = Bitset::new(50 * 50);
     for (_, antenna_positions) in &positions {
         for i in 0..antenna_positions.len() {
             for j in i + 1..antenna_positions.len() {
@@ -131,7 +131,7 @@ fn part2_no_map(ctx: &mut RunContext) -> eyre::Result<u64> {
         }
     }
 
-    let mut antinodes = FixedBitset::new(50 * 50);
+    let mut antinodes = Bitset::new(50 * 50);
     for k in 0..chars.len {
         let antenna_positions = &positions[k].data[..positions[k].len];
         for i in 0..antenna_positions.len() {
