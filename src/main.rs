@@ -2,6 +2,7 @@
 
 use std::{
     collections::HashMap,
+    path::PathBuf,
     time::{Duration, Instant},
 };
 
@@ -100,6 +101,11 @@ fn run_variant(
             eyre::bail!("AOC_TOKEN env var not specified, could not fetch missing input.");
         };
 
+        let file_path = PathBuf::from(&file_path);
+        let Some(parent_dir) = file_path.parent() else {
+            eyre::bail!("not a valid file path.");
+        };
+
         let year = 2024;
 
         let mut headers = HeaderMap::new();
@@ -116,6 +122,7 @@ fn run_variant(
             .get(format!("https://adventofcode.com/{year}/day/{day}/input"))
             .send()?;
 
+        std::fs::create_dir_all(parent_dir)?;
         std::fs::write(&file_path, &res.bytes()?[..])?;
     }
 
