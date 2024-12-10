@@ -147,20 +147,92 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
         is_space = !is_space;
     }
 
-    let mut ssi = 0; // space start index
+    // let mut stuck = 0;
+    // let mut moved = 0;
+    // let mut ksum = 0;
+
+    // let mut ssi = 0; // space start index
+    // for i in (0..files.len()).rev() {
+    //     let file = &mut files[i];
+    //     let mut found_min = false;
+    //     let mut k = 0;
+    //     let mut stuck2 = false;
+    //     for j in ssi..spaces.len() {
+    //         k += 1;
+    //         let space = &mut spaces[j];
+    //         if space.pos >= file.pos {
+    //             stuck += 1;
+    //             stuck2 = true;
+    //             break;
+    //         }
+    //         if !found_min && space.size != 0 {
+    //             if ssi != j {
+    //                 println!();
+    //                 println!("ssi = {j} delta={} size={}", j - ssi, space.size);
+    //             }
+    //             ssi = j;
+    //             found_min = true;
+    //         }
+    //         if space.size >= file.size {
+    //             file.pos = space.pos;
+    //             space.size -= file.size;
+    //             space.pos += file.size;
+    //             moved += 1;
+    //             break;
+    //         }
+    //     }
+    //     ksum += k;
+    //     print!("{}{k}:{} ", if stuck2 { 's' } else { 'f' }, file.size);
+    // }
+    // println!();
+
+    // println!("stuck={stuck}, moved={moved}, total={}", files.len());
+    // println!("kratio = {}", ksum as f32 / files.len() as f32);
+
+    // let mut ssi = 0; // space start index
+    // for i in (0..files.len()).rev() {
+    //     let file = &mut files[i];
+    //     let mut found_min = false;
+    //     for j in ssi..spaces.len() {
+    //         let space = &mut spaces[j];
+    //         if space.pos >= file.pos {
+    //             break;
+    //         }
+    //         if !found_min && space.size != 0 {
+    //             ssi = j;
+    //             found_min = true;
+    //         }
+    //         if space.size >= file.size {
+    //             file.pos = space.pos;
+    //             space.size -= file.size;
+    //             space.pos += file.size;
+    //             break;
+    //         }
+    //     }
+    // }
+
+    let mut space_starts = [0; 10];
     for i in (0..files.len()).rev() {
         let file = &mut files[i];
-        let mut found_min = false;
-        for j in ssi..spaces.len() {
+
+        let mut min_space_start = spaces.len();
+        for i in file.size..space_starts.len() {
+            min_space_start = space_starts[i].min(min_space_start);
+        }
+
+        for j in min_space_start..spaces.len() {
             let space = &mut spaces[j];
-            if !found_min && space.size != 0 {
-                ssi = j;
-                found_min = true;
-            }
             if space.pos >= file.pos {
                 break;
             }
+
             if space.size >= file.size {
+                let new_space_size = space.size - file.size;
+                // huh? why does this work?
+                space_starts[space.size] = j;
+                if j < space_starts[new_space_size] {
+                    space_starts[new_space_size] = j;
+                }
                 file.pos = space.pos;
                 space.size -= file.size;
                 space.pos += file.size;
@@ -168,11 +240,11 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
             }
         }
     }
+
     let checksum: usize = files
         .iter()
         .map(|file| checksum_contiguous(file.id, file.pos, file.size))
         .sum();
-    // let checksum = checksum / 2;
 
     Ok(checksum as u64)
 }
