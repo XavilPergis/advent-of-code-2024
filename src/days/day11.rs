@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use ahash::AHashMap;
 
 use crate::{RunContext, RunnerRepository};
 
@@ -32,8 +32,7 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
         front.clear();
         back.clear();
         front.push(num.parse::<u64>()?);
-        for _ in 0..40 {
-            // println!("{front:?}");
+        for _ in 0..25 {
             for &num in &front {
                 if num == 0 {
                     back.push(1);
@@ -53,15 +52,18 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
     Ok(sum as u64)
 }
 
-fn seq_count(cache: &mut HashMap<(u64, u8), u64>, num: u64, depth: u8) -> u64 {
-    if let Some(&cached) = cache.get(&(num, depth)) {
+fn seq_count(cache: &mut AHashMap<u64, u64>, num: u64, depth: u8) -> u64 {
+    if depth == 75 {
+        // base case
+        return 1;
+    }
+
+    let key = num | (depth as u64) << 56;
+    if let Some(&cached) = cache.get(&key) {
         return cached;
     }
 
-    let res = if depth == 75 {
-        // base case
-        1
-    } else if num == 0 {
+    let res = if num == 0 {
         seq_count(cache, 1, depth + 1)
     } else if let Some((l, r)) = split_digits(num) {
         seq_count(cache, l, depth + 1) + seq_count(cache, r, depth + 1)
@@ -69,13 +71,13 @@ fn seq_count(cache: &mut HashMap<(u64, u8), u64>, num: u64, depth: u8) -> u64 {
         seq_count(cache, num * 2024, depth + 1)
     };
 
-    cache.insert((num, depth), res);
+    cache.insert(key, res);
     res
 }
 
 fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
     let mut sum = 0;
-    let mut cache = HashMap::new();
+    let mut cache = AHashMap::new();
     for num in ctx.input.split_whitespace() {
         sum += seq_count(&mut cache, num.parse::<u64>()?, 0);
     }
