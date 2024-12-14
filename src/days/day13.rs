@@ -18,23 +18,20 @@ fn run_part(ctx: &mut RunContext, offset: i64) -> eyre::Result<u64> {
     let mut sum = 0;
 
     while cur < ctx.input.len() {
-        cur += 12; // "Button A: X+"
-        let ax = ctx.input[cur..cur + 2].parse::<i64>()?;
-        cur += 2; // 2 digits
-        cur += 4; // ", Y+"
-        let ay = ctx.input[cur..cur + 2].parse::<i64>()?;
-        cur += 2; // 2 digits
-        cur += 1; // "\n"
+        let ax = 10 * (ctx.input_scratch[cur + 12] - b'0') as i64
+            + (ctx.input_scratch[cur + 13] - b'0') as i64;
+        let ay = 10 * (ctx.input_scratch[cur + 18] - b'0') as i64
+            + (ctx.input_scratch[cur + 19] - b'0') as i64;
+        let bx = 10 * (ctx.input_scratch[cur + 33] - b'0') as i64
+            + (ctx.input_scratch[cur + 34] - b'0') as i64;
+        let by = 10 * (ctx.input_scratch[cur + 39] - b'0') as i64
+            + (ctx.input_scratch[cur + 40] - b'0') as i64;
+        cur += 51;
 
-        cur += 12; // "Button B: X+"
-        let bx = ctx.input[cur..cur + 2].parse::<i64>()?;
-        cur += 2; // 2 digits
-        cur += 4; // ", Y+"
-        let by = ctx.input[cur..cur + 2].parse::<i64>()?;
-        cur += 2; // 2 digits
-        cur += 1; // "\n"
+        while ctx.input_scratch[cur].is_ascii_digit() {
+            cur += 1;
+        }
 
-        cur += 9; // "Prize: X="
         let px = offset + parse_number(ctx.input, &mut cur)?;
         cur += 4; // ", Y="
         let py = offset + parse_number(ctx.input, &mut cur)?;
@@ -51,7 +48,7 @@ fn run_part(ctx: &mut RunContext, offset: i64) -> eyre::Result<u64> {
         // if there's a remained, that means the target point is off-grid and therefore unreachable
         // (we'd need to do partial steps to reach it)
         if px_ab % denom == 0 && py_ab % denom == 0 {
-            sum += 3 * px_ab / denom + py_ab / denom;
+            sum += 3 * (px_ab + py_ab) / denom;
         }
     }
 
