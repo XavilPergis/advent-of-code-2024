@@ -1,3 +1,5 @@
+use std::fmt::Write;
+
 #[derive(Clone, Debug)]
 pub struct Bitset {
     len: usize,
@@ -118,6 +120,32 @@ impl Bitset {
         let mask = u64::MAX << 63 - (self.len - 1 & 63);
         // let tail = tail | u64::MAX.wrapping_shr(self.len as u32);
         sum + (tail | !mask).count_zeros()
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct DebugBitset<'a>(pub &'a Bitset, pub usize, pub usize);
+
+impl std::fmt::Debug for DebugBitset<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut row = 0;
+        while row < self.2 {
+            for x in 0..self.1 {
+                let ch = match (
+                    self.0.get(self.1 * row + x),
+                    row + 1 < self.2 && self.0.get(self.1 * (row + 1) + x),
+                ) {
+                    (true, true) => '█',
+                    (true, false) => '▀',
+                    (false, true) => '▄',
+                    (false, false) => ' ',
+                };
+                f.write_char(ch)?;
+            }
+            f.write_char('\n')?;
+            row += 2;
+        }
+        Ok(())
     }
 }
 
