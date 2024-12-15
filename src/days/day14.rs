@@ -113,26 +113,26 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
 // #                             #
 // ###############################
 
-const TREE_WIDTH: usize = 31;
-const TREE_HEIGHT: usize = 33;
-const TREE_BITS: [u64; 16] = [
-    0xffffffff00000006,
-    0x0000000c00000018,
-    0x0000003000200060,
-    0x00e000c003e00180,
-    0x0fe003003fe00600,
-    0x1f000c007f001801,
-    0xff003007ff00601f,
-    0xff00c00ff801803f,
-    0xf80300fff80603ff,
-    0xf80c0ffff81807ff,
-    0xc0301fffc0607fff,
-    0xc0c1ffffc187ffff,
-    0xc300070006000e00,
-    0x0c001c0018000000,
-    0x3000000060000000,
-    0xc0000001fffffffe,
-];
+// const TREE_WIDTH: usize = 31;
+// const TREE_HEIGHT: usize = 33;
+// const TREE_BITS: [u64; 16] = [
+//     0xffffffff00000006,
+//     0x0000000c00000018,
+//     0x0000003000200060,
+//     0x00e000c003e00180,
+//     0x0fe003003fe00600,
+//     0x1f000c007f001801,
+//     0xff003007ff00601f,
+//     0xff00c00ff801803f,
+//     0xf80300fff80603ff,
+//     0xf80c0ffff81807ff,
+//     0xc0301fffc0607fff,
+//     0xc0c1ffffc187ffff,
+//     0xc300070006000e00,
+//     0x0c001c0018000000,
+//     0x3000000060000000,
+//     0xc0000001fffffffe,
+// ];
 
 fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
     #[derive(Copy, Clone, Debug)]
