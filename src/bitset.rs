@@ -66,12 +66,14 @@ impl Bitset {
     }
 
     #[inline]
+    #[track_caller]
     pub fn set(&mut self, ix: usize) {
         debug_assert!(ix < self.len);
         self.bits[ix >> SHIFT] |= HI64.wrapping_shr(ix as u32);
     }
 
     #[inline]
+    #[track_caller]
     pub unsafe fn set_unchecked(&mut self, ix: usize) {
         debug_assert!(ix < self.len);
         *self.bits.get_unchecked_mut(ix >> SHIFT) |= HI64.wrapping_shr(ix as u32);
