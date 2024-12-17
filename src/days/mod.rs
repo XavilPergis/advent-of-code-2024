@@ -30,4 +30,5 @@ add_days! {
     14, day14;
     15, day15;
     16, day16;
+    17, day17;
 }
