@@ -2,6 +2,7 @@
 
 use std::{
     collections::HashMap,
+    fmt::Display,
     path::PathBuf,
     time::{Duration, Instant},
 };
@@ -32,6 +33,7 @@ enum RunCommand {
 pub struct RunContext<'a> {
     pub input: &'a str,
     pub input_scratch: &'a mut [u8],
+    write_output: bool,
     begin_timestamp: Option<Instant>,
     parsed_timestamp: Option<Instant>,
     complete_timestamp: Option<Instant>,
@@ -45,7 +47,7 @@ impl RunContext<'_> {
 
 pub struct RunnerRepository {
     current_day: u32,
-    days: HashMap<u32, HashMap<String, VariantRunner>>,
+    days: HashMap<u32, HashMap<String, Box<dyn Fn(&mut RunContext)>>>,
 }
 
 impl RunnerRepository {
@@ -63,18 +65,42 @@ impl RunnerRepository {
         register(self)
     }
 
-    pub fn add_variant(&mut self, name: &'static str, runner: VariantRunner) {
+    pub fn add_variant<T, F>(&mut self, name: &'static str, runner: F)
+    where
+        F: Fn(&mut RunContext) -> eyre::Result<T> + 'static,
+        T: Display,
+    {
         let variants = self
             .days
             .entry(self.current_day)
             .or_insert_with(|| Default::default());
-        variants.insert(name.into(), runner);
+        variants.insert(
+            name.into(),
+            Box::new(move |ctx| {
+                ctx.begin_timestamp = Some(Instant::now());
+                let res = runner(ctx);
+                ctx.complete_timestamp = Some(Instant::now());
+                if ctx.write_output {
+                    match res {
+                        Ok(value) => println!("{value}"),
+                        Err(err) => println!("\x1b[31merror\x1b[0m:\n{err:?}"),
+                    }
+                }
+            }),
+        );
     }
 }
 
-pub type VariantRunner = fn(&mut RunContext) -> eyre::Result<u64>;
 
 pub mod bitset;
+
+// i fucking hate that macros are sensitive to declaration order. why is it like this.
+macro_rules! as_display {
+    ($($arg:tt)*) => {{
+        $crate::WrapAsDisplay(move |f: &mut std::fmt::Formatter<'_>| write!(f, $($arg)*))
+    }};
+}
+
 mod days;
 
 fn run_variant(
@@ -137,6 +163,7 @@ fn run_variant(
     let mut ctx = RunContext {
         input: &input,
         input_scratch: &mut scratch,
+        write_output: true,
         begin_timestamp: None,
         parsed_timestamp: None,
         complete_timestamp: None,
@@ -144,20 +171,11 @@ fn run_variant(
 
     let mut samples = Vec::with_capacity(config.sample_count);
     let loop_start = Instant::now();
-    for i in 0..config.sample_count {
+    for _ in 0..config.sample_count {
         ctx.input_scratch.clone_from_slice(input.as_bytes());
 
-        ctx.begin_timestamp = Some(Instant::now());
-        let res = part(&mut ctx);
-        ctx.complete_timestamp = Some(Instant::now());
-        if let Err(err) = res {
-            println!("\x1b[31mpart returned error:\x1b[0m {err:?}");
-            break;
-        }
-
-        if i == 0 {
-            println!("{}", res.unwrap());
-        }
+        part(&mut ctx);
+        ctx.write_output = false;
 
         let (start, end) = (
             ctx.begin_timestamp.unwrap(),
@@ -339,5 +357,15 @@ impl std::fmt::Display for DisplayDuration {
             write!(f, "{}.{:0>3} s", dur.as_secs(), dur.as_millis() % 1000)?;
         }
         Ok(())
+    }
+}
+
+pub struct WrapAsDisplay<F>(F);
+impl<F> std::fmt::Display for WrapAsDisplay<F>
+where
+    F: Fn(&mut std::fmt::Formatter<'_>) -> std::fmt::Result,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0(f)
     }
 }

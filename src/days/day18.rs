@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, fmt::Display};
 
 use crate::{bitset::Bitset, RunContext, RunnerRepository};
 
@@ -13,7 +13,7 @@ fn idx(x: usize, y: usize) -> usize {
     MAP_WIDTH * y + x
 }
 
-fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part1(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut obstacle_map = Bitset::new(MAP_WIDTH * MAP_WIDTH);
     let mut weights = vec![u32::MAX; MAP_WIDTH * MAP_WIDTH];
     for line in ctx.input.lines().take(1024) {
@@ -65,7 +65,7 @@ fn set_obstacles(obstacle_list: &[[u8; 2]], obstacles: &mut Bitset, limit: usize
     }
 }
 
-fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part2(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut obstacles = Bitset::new(MAP_WIDTH * MAP_WIDTH);
     let mut weights = vec![u32::MAX; MAP_WIDTH * MAP_WIDTH];
     let mut queue = VecDeque::new();
@@ -92,16 +92,12 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
         do_search(&obstacles, &mut weights, &mut queue);
 
         if weights[weights.len() - 1] < u32::MAX {
-            println!("reachable at {cur}");
             max_reachable = cur;
         } else {
-            println!("unreachable at {cur}");
             min_unreachable = cur;
         }
     }
 
     let [x, y] = obstacle_list[max_reachable];
-    println!("{x},{y}");
-
-    Ok(0)
+    Ok(as_display!("{x},{y}"))
 }
