@@ -1,4 +1,4 @@
-use crate::{RunContext, RunnerRepository};
+use crate::prelude::*;
 
 pub fn add_variants(repo: &mut RunnerRepository) {
     repo.add_variant("part1", part1);
@@ -138,7 +138,7 @@ fn parse_state(input: &[u8], state: &mut State) {
     }
 }
 
-fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part1(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut state = State::default();
     parse_state(&ctx.input_scratch, &mut state);
 
@@ -214,7 +214,7 @@ fn test_candidate(program: &[u8], n: usize, cur_a: u64) -> Option<u64> {
     None
 }
 
-fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part2(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut state = State::default();
     parse_state(&ctx.input_scratch, &mut state);
 
@@ -227,5 +227,5 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
     // }
     // assert_eq!(&target, &state.output);
 
-    Ok(res as u64)
+    Ok(res)
 }

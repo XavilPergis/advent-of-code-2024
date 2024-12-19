@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, fmt::Display};
 
-use crate::{bitset::Bitset, RunContext, RunnerRepository};
+use crate::{bitset::Bitset, prelude::*};
 
 pub fn add_variants(repo: &mut RunnerRepository) {
     repo.add_variant("part1", part1);
@@ -29,7 +29,7 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut queue = VecDeque::new();
     do_search(&obstacle_map, &mut weights, &mut queue);
     let answer = *weights.last().unwrap();
-    Ok(answer as u64)
+    Ok(answer)
 }
 
 fn do_search(obstacles: &Bitset, weights: &mut [u32], queue: &mut VecDeque<(u8, u8, u32)>) {

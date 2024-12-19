@@ -1,4 +1,4 @@
-use crate::{RunContext, RunnerRepository};
+use crate::prelude::*;
 
 pub fn add_variants(repo: &mut RunnerRepository) {
     repo.add_variant("part1", part1);
@@ -13,7 +13,7 @@ fn parse_number(input: &str, cur: &mut usize) -> eyre::Result<i64> {
     Ok(input[begin..*cur].parse::<i64>()?)
 }
 
-fn run_part(ctx: &mut RunContext, offset: i64) -> eyre::Result<u64> {
+fn run_part(ctx: &mut RunContext, offset: i64) -> eyre::Result<impl Display> {
     let mut cur = 0;
     let mut sum = 0;
 
@@ -52,13 +52,13 @@ fn run_part(ctx: &mut RunContext, offset: i64) -> eyre::Result<u64> {
         }
     }
 
-    Ok(sum as u64)
+    Ok(sum)
 }
 
-fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part1(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     run_part(ctx, 0)
 }
 
-fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part2(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     run_part(ctx, 10000000000000)
 }

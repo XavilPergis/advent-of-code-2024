@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use eyre::OptionExt;
 
-use crate::{RunContext, RunnerRepository};
+use crate::prelude::*;
 
 pub fn add_variants(repo: &mut RunnerRepository) {
     repo.add_variant("part1", part1);
@@ -31,7 +31,7 @@ fn parse(ctx: &mut RunContext) -> eyre::Result<Lists> {
     })
 }
 
-fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part1(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut input = parse(ctx)?;
 
     input.left.sort_unstable();
@@ -42,10 +42,10 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
         total_dist += i32::abs_diff(left, right);
     }
 
-    Ok(total_dist as u64)
+    Ok(total_dist)
 }
 
-fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part2(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let input = parse(ctx)?;
 
     let mut freq = HashMap::<i32, u32>::new();
@@ -58,5 +58,5 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
         score += id * freq.get(&id).copied().unwrap_or_default() as i32;
     }
 
-    Ok(score as u64)
+    Ok(score)
 }

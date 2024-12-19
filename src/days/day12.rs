@@ -1,4 +1,4 @@
-use crate::{bitset::Bitset, RunContext, RunnerRepository};
+use crate::{bitset::Bitset, prelude::*};
 
 pub fn add_variants(repo: &mut RunnerRepository) {
     repo.add_variant("part1", part1);

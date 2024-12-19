@@ -1,6 +1,6 @@
 use std::ops::Index;
 
-use crate::{RunContext, RunnerRepository};
+use crate::prelude::*;
 
 pub fn add_variants(repo: &mut RunnerRepository) {
     repo.add_variant("part1", part1);
@@ -133,7 +133,7 @@ fn check_surrounding(board: &Board, x: usize, y: usize) -> usize {
     res
 }
 
-fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part1(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let board = parse_board(ctx)?;
 
     let mut res = 0;
@@ -143,10 +143,10 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
         }
     }
 
-    Ok(res as u64)
+    Ok(res)
 }
 
-fn part1_split(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part1_split(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let board = parse_board(ctx)?;
 
     let mut res = 0;
@@ -214,7 +214,7 @@ fn part1_split(ctx: &mut RunContext) -> eyre::Result<u64> {
         }
     }
 
-    Ok(res as u64)
+    Ok(res)
 }
 
 fn check_surrounding_part2(board: &Board, x: usize, y: usize) -> usize {
@@ -237,7 +237,7 @@ fn check_surrounding_part2(board: &Board, x: usize, y: usize) -> usize {
     res
 }
 
-fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part2(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let board = parse_board(ctx)?;
 
     let mut res = 0;
@@ -247,5 +247,5 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
         }
     }
 
-    Ok(res as u64)
+    Ok(res)
 }

@@ -1,18 +1,20 @@
-use crate::{RunContext, RunnerRepository};
+use std::fmt::Display;
+
+use crate::prelude::*;
 
 pub fn add_variants(repo: &mut RunnerRepository) {
     repo.add_variant("part1", part1);
     repo.add_variant("part2", part2);
 }
 
-fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part1(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let regex = regex::Regex::new(r#"mul\(([0-9]{0,3}),([0-9]{0,3})\)"#).unwrap();
     let mut sum = 0;
     for matched in regex.captures_iter(ctx.input) {
         let (_, [l, r]) = matched.extract();
         sum += l.parse::<u32>()? * r.parse::<u32>()?;
     }
-    Ok(sum as u64)
+    Ok(sum)
 }
 
 fn eat_str(src: &mut &str, str: &str) -> bool {
@@ -51,7 +53,7 @@ fn parse_mul(src: &mut &str) -> Option<u32> {
     Some(a * b)
 }
 
-fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part2(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut src = ctx.input;
 
     let mut sum = 0;
@@ -73,5 +75,5 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
         }
     }
 
-    Ok(sum as u64)
+    Ok(sum)
 }

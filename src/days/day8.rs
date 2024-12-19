@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{bitset::Bitset, RunContext, RunnerRepository};
+use crate::{bitset::Bitset, prelude::*};
 
 pub fn add_variants(repo: &mut RunnerRepository) {
     repo.add_variant("part1", part1);
@@ -8,7 +8,7 @@ pub fn add_variants(repo: &mut RunnerRepository) {
     repo.add_variant("part2_no_map", part2_no_map);
 }
 
-fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part1(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut positions = HashMap::<u8, Vec<(i32, i32)>>::new();
     let mut x = 0;
     let mut y = 0;
@@ -42,10 +42,10 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
     }
 
     let total = antinodes.count_ones();
-    Ok(total as u64)
+    Ok(total)
 }
 
-fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part2(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut positions = HashMap::<u8, Vec<(i32, i32)>>::new();
     let mut x = 0;
     let mut y = 0;
@@ -85,7 +85,7 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
     }
 
     let total = antinodes.count_ones();
-    Ok(total as u64)
+    Ok(total)
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -94,7 +94,7 @@ struct FixedVec<T, const N: usize> {
     data: [T; N],
 }
 
-fn part2_no_map(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part2_no_map(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut chars = FixedVec {
         len: 0,
         data: [0u8; 62],
@@ -159,5 +159,5 @@ fn part2_no_map(ctx: &mut RunContext) -> eyre::Result<u64> {
     }
 
     let total = antinodes.count_ones();
-    Ok(total as u64)
+    Ok(total)
 }

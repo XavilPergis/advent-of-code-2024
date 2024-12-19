@@ -1,6 +1,6 @@
 use std::simd::{cmp::SimdPartialEq, u8x32};
 
-use crate::{bitset::Bitset, RunContext, RunnerRepository};
+use crate::{bitset::Bitset, prelude::*};
 
 pub fn add_variants(repo: &mut RunnerRepository) {
     repo.add_variant("part1", part1);
@@ -43,7 +43,7 @@ fn trailhead_score(map: &[u8], visited: &mut Bitset, x: usize, y: usize, cur: u8
     score
 }
 
-fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part1(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut visited = Bitset::new(MAP_WIDTH * MAP_WIDTH);
     let mut sum = 0;
     for y in 0..MAP_WIDTH {
@@ -54,7 +54,7 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
             }
         }
     }
-    Ok(sum as u64)
+    Ok(sum)
 }
 
 fn trailhead_rating(map: &[u8], x: usize, y: usize, cur: u8) -> usize {
@@ -79,7 +79,7 @@ fn trailhead_rating(map: &[u8], x: usize, y: usize, cur: u8) -> usize {
     score
 }
 
-fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part2(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut sum = 0;
     for y in 0..MAP_WIDTH {
         for x in 0..MAP_WIDTH {
@@ -88,10 +88,10 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
             }
         }
     }
-    Ok(sum as u64)
+    Ok(sum)
 }
 
-fn part2_no_recursion(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part2_no_recursion(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut sum = 0;
     let mut stack = vec![];
     for y in 0..MAP_WIDTH {
@@ -121,7 +121,7 @@ fn part2_no_recursion(ctx: &mut RunContext) -> eyre::Result<u64> {
             }
         }
     }
-    Ok(sum as u64)
+    Ok(sum)
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
@@ -133,7 +133,7 @@ enum Direction {
     Left,
 }
 
-fn part2_no_recursion_flat(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part2_no_recursion_flat(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut sum = 0;
     let mut stack = Vec::with_capacity(256);
 
@@ -179,10 +179,10 @@ fn part2_no_recursion_flat(ctx: &mut RunContext) -> eyre::Result<u64> {
     }
     // println!();
 
-    Ok(sum as u64)
+    Ok(sum)
 }
 
-fn part2_no_recursion_flat_dir(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part2_no_recursion_flat_dir(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut sum = 0;
     let mut stack = Vec::with_capacity(256);
 
@@ -231,10 +231,10 @@ fn part2_no_recursion_flat_dir(ctx: &mut RunContext) -> eyre::Result<u64> {
     }
     println!();
 
-    Ok(sum as u64)
+    Ok(sum)
 }
 
-fn part2_no_recursion_flat_unsafe(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part2_no_recursion_flat_unsafe(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut sum = 0;
     let mut stack = Vec::with_capacity(512);
 
@@ -279,5 +279,5 @@ fn part2_no_recursion_flat_unsafe(ctx: &mut RunContext) -> eyre::Result<u64> {
         ix += 1;
     }
 
-    Ok(sum as u64)
+    Ok(sum)
 }

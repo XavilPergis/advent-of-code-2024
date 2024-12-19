@@ -2,7 +2,7 @@ use std::sync::atomic::AtomicU64;
 
 use rayon::{iter::ParallelIterator, str::ParallelString};
 
-use crate::{RunContext, RunnerRepository};
+use crate::prelude::*;
 
 pub fn add_variants(repo: &mut RunnerRepository) {
     repo.add_variant("part1", part1);
@@ -22,7 +22,7 @@ fn solve_part1(test_value: u64, acc: u64, parts: &[u64]) -> bool {
     solve_part1(test_value, acc + head, tail) || solve_part1(test_value, acc * head, tail)
 }
 
-fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part1(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut total = 0;
     let mut parts = vec![];
     for line in ctx.input.lines() {
@@ -62,7 +62,7 @@ fn solve_part1_rev(test_value: u64, acc: u64, parts: &[u64]) -> bool {
     // solve_part1(test_value, acc + head, tail) || solve_part1(test_value, acc * head, tail)
 }
 
-fn part1_rev(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part1_rev(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut total = 0;
     let mut parts = vec![];
     for line in ctx.input.lines() {
@@ -104,7 +104,7 @@ fn solve_part2(test_value: u64, acc: u64, parts: &[u64]) -> bool {
         || solve_part2(test_value, concat(acc, head), tail)
 }
 
-fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part2(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut total = 0;
     let mut parts = vec![];
     for line in ctx.input.lines() {
@@ -122,7 +122,7 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
     Ok(total)
 }
 
-fn part2_parallel(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part2_parallel(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut total = AtomicU64::new(0);
     // let mut parts = vec![];
     ctx.input.par_lines().try_for_each_init(

@@ -1,4 +1,4 @@
-use crate::{RunContext, RunnerRepository};
+use crate::prelude::*;
 
 pub fn add_variants(repo: &mut RunnerRepository) {
     repo.add_variant("part1", part1);
@@ -12,7 +12,7 @@ fn memchr(haystack: &[u8], needle: u8) -> Option<usize> {
 const MAP_WIDTH: usize = 50;
 const MAP_STRIDE: usize = MAP_WIDTH + 1;
 
-fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part1(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut i = 0;
     while i + 1 < ctx.input_scratch.len() {
         if ctx.input_scratch[i] == b'\n' && ctx.input_scratch[i + 1] == b'\n' {
@@ -68,7 +68,7 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
         }
     }
 
-    Ok(res as u64)
+    Ok(res)
 }
 
 // 600 boxes
@@ -128,7 +128,7 @@ fn push_block(map: &mut [u8], pos: usize, dir: isize) {
     map[pos] = TILE_EMPTY;
 }
 
-fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part2(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut map = vec![];
 
     let mut ix = 0;
@@ -184,5 +184,5 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
         }
     }
 
-    Ok(res as u64)
+    Ok(res)
 }

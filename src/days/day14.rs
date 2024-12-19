@@ -1,4 +1,4 @@
-use crate::{bitset::{Bitset, DebugBitset}, RunContext, RunnerRepository};
+use crate::{bitset::Bitset, prelude::*};
 
 pub fn add_variants(repo: &mut RunnerRepository) {
     repo.add_variant("part1", part1);
@@ -23,7 +23,7 @@ fn parse_number(text: &[u8], cur: &mut usize) -> i32 {
 const MAP_WIDTH: i32 = 101;
 const MAP_HEIGHT: i32 = 103;
 
-fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part1(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut q1 = 0;
     let mut q2 = 0;
     let mut q3 = 0;
@@ -134,7 +134,7 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
 //     0xc0000001fffffffe,
 // ];
 
-fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part2(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     #[derive(Copy, Clone, Debug)]
     struct Robot {
         x: i32,
@@ -195,7 +195,7 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
             if contig >= 30 {
                 println!(
                     "{step}:\n{:?}",
-                    DebugBitset(&map, MAP_WIDTH as usize, MAP_HEIGHT as usize)
+                    crate::bitset::DebugBitset(&map, MAP_WIDTH as usize, MAP_HEIGHT as usize)
                 );
             }
 
@@ -203,5 +203,5 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
         }
     }
 
-    todo!()
+    todo!() as eyre::Result<i32>
 }

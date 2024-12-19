@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::{RunContext, RunnerRepository};
+use crate::prelude::*;
 
 pub fn add_variants(repo: &mut RunnerRepository) {
     repo.add_variant("part1", part1);
@@ -13,7 +13,7 @@ fn checksum_contiguous(id: usize, pos: usize, len: usize) -> usize {
     id * len * (2 * pos + len - 1) / 2
 }
 
-fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part1(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut stack = VecDeque::new();
     let input = ctx.input.trim().as_bytes();
     let mut is_space = false;
@@ -65,10 +65,10 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
     // // entry and divide it out here. prolly doesnt actually matter that much for perf lol.
     // sum /= 2;
 
-    Ok(sum as u64)
+    Ok(sum)
 }
 
-fn part1_stackless(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part1_stackless(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let input = ctx.input.trim().as_bytes();
 
     // odd length means last elem represents a file.
@@ -106,10 +106,10 @@ fn part1_stackless(ctx: &mut RunContext) -> eyre::Result<u64> {
     let size = (ctx.input_scratch[fi] - b'0') as usize;
     sum += checksum_contiguous(fi / 2, pos, size);
 
-    Ok(sum as u64)
+    Ok(sum)
 }
 
-fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part2(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     #[derive(Copy, Clone, Debug)]
     struct File {
         id: usize,
@@ -246,5 +246,5 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
         .map(|file| checksum_contiguous(file.id, file.pos, file.size))
         .sum();
 
-    Ok(checksum as u64)
+    Ok(checksum)
 }

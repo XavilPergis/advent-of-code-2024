@@ -4,7 +4,7 @@ use std::{
     simd::{cmp::SimdPartialEq, u8x2, u8x32, u8x4, usizex4},
 };
 
-use crate::{bitset::Bitset, RunContext, RunnerRepository};
+use crate::{bitset::Bitset, prelude::*};
 
 pub fn add_variants(repo: &mut RunnerRepository) {
     repo.add_variant("part1", part1);
@@ -200,7 +200,7 @@ fn parse(ctx: &mut RunContext) -> eyre::Result<State> {
     })
 }
 
-fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part1(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut state = parse(ctx)?;
 
     while state.inbounds(state.pos) {
@@ -236,14 +236,14 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
     //     println!();
     // }
 
-    Ok(total as u64)
+    Ok(total)
 }
 
 const BOARD_LEN: usize = 130;
 const BOARD_AREA: usize = 130 * 130;
 // const HI64: u64 = 1u64 << 63;
 
-fn part1_bitset(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part1_bitset(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut walls = Bitset::new(BOARD_AREA + 64);
     let mut visited = Bitset::new(BOARD_AREA + 64);
 
@@ -340,10 +340,10 @@ fn part1_bitset(ctx: &mut RunContext) -> eyre::Result<u64> {
     // }
 
     let total = visited.count_ones();
-    Ok(total as u64)
+    Ok(total)
 }
 
-fn part1_no_parse_simd(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part1_no_parse_simd(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut visited = Bitset::new(BOARD_AREA + 64);
 
     let input = ctx.input.as_bytes();
@@ -527,10 +527,10 @@ fn part1_no_parse_simd(ctx: &mut RunContext) -> eyre::Result<u64> {
     }
 
     let total = visited.count_ones();
-    Ok(total as u64)
+    Ok(total)
 }
 
-fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part2(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut state = parse(ctx)?;
 
     let start_pos = state.pos;
@@ -604,10 +604,10 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
     //     println!();
     // }
 
-    Ok(total as u64)
+    Ok(total)
 }
 
-fn part2_bitset(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part2_bitset(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut visited = Bitset::new(BOARD_AREA);
 
     let ix = ctx
@@ -848,5 +848,5 @@ fn part2_bitset(ctx: &mut RunContext) -> eyre::Result<u64> {
         ctx.input_scratch[(BOARD_LEN + 1) * candidate.1 + candidate.0] = prev;
     }
 
-    Ok(total as u64)
+    Ok(total)
 }

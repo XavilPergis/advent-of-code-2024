@@ -103,6 +103,11 @@ macro_rules! as_display {
 
 mod days;
 
+pub mod prelude {
+    pub use crate::{RunContext, RunnerRepository};
+    pub use std::fmt::Display;
+}
+
 fn run_variant(
     repo: &RunnerRepository,
     config: &RunConfig,

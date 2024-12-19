@@ -1,4 +1,4 @@
-use crate::{bitset::Bitset, RunContext, RunnerRepository};
+use crate::{bitset::Bitset, prelude::*};
 
 pub fn add_variants(repo: &mut RunnerRepository) {
     repo.add_variant("part1", part1);
@@ -48,7 +48,7 @@ fn pathfind_dfs(
 const MAP_WIDTH: usize = 141;
 const OFFSETS: [isize; 4] = [1, MAP_WIDTH as isize, -1, -(MAP_WIDTH as isize)];
 
-fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part1(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut cost_map = vec![u32::MAX; MAP_WIDTH * MAP_WIDTH];
     let mut map = Bitset::new(MAP_WIDTH * MAP_WIDTH);
     let mut start_pos = 0;
@@ -68,7 +68,7 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
 
     pathfind_dfs(&map, &mut cost_map, start_pos, 0, goal_pos, 0);
     let score = cost_map[goal_pos];
-    Ok(score as u64)
+    Ok(score)
 }
 
 fn pathfind_dfs_directional(
@@ -147,7 +147,7 @@ fn mark_best_path(
     }
 }
 
-fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part2(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut cost_map = vec![[u32::MAX; 4]; MAP_WIDTH * MAP_WIDTH];
     let mut map = Bitset::new(MAP_WIDTH * MAP_WIDTH);
     let mut best_path = Bitset::new(MAP_WIDTH * MAP_WIDTH);
@@ -175,5 +175,5 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
     }
 
     let score = best_path.count_ones();
-    Ok(score as u64)
+    Ok(score)
 }

@@ -1,4 +1,6 @@
-use crate::{RunContext, RunnerRepository};
+use std::fmt::Display;
+
+use crate::prelude::*;
 
 pub fn add_variants(repo: &mut RunnerRepository) {
     repo.add_variant("part1", part1);
@@ -24,7 +26,7 @@ fn part1_verify(line: &[u32]) -> bool {
     true
 }
 
-fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part1(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut safe_count = 0;
     let mut line_data = Vec::<u32>::new();
     for line in ctx.input.lines() {
@@ -38,7 +40,7 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
         }
     }
 
-    Ok(safe_count as u64)
+    Ok(safe_count)
 }
 
 fn part2_verify(line: &[u32]) -> bool {
@@ -77,7 +79,7 @@ fn test_day2_part2() {
     assert_eq!(part2_verify(&[1, 3, 6, 7, 9]), true); //: Safe without removing any level.
 }
 
-fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part2(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut safe_count = 0;
     let mut line_data = Vec::<u32>::new();
     for line in ctx.input.lines() {
@@ -91,5 +93,5 @@ fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
         }
     }
 
-    Ok(safe_count as u64)
+    Ok(safe_count)
 }

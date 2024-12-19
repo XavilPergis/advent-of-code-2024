@@ -1,6 +1,6 @@
 use ahash::AHashMap;
 
-use crate::{RunContext, RunnerRepository};
+use crate::prelude::*;
 
 pub fn add_variants(repo: &mut RunnerRepository) {
     repo.add_variant("part1", part1);
@@ -25,7 +25,7 @@ fn split_digits(n: u64) -> Option<(u64, u64)> {
     Some((n / p, n % p))
 }
 
-fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part1(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut front = vec![];
     let mut back = vec![];
 
@@ -51,7 +51,7 @@ fn part1(ctx: &mut RunContext) -> eyre::Result<u64> {
         sum += front.len();
     }
 
-    Ok(sum as u64)
+    Ok(sum)
 }
 
 fn seq_count<const MAX_DEPTH: u8>(cache: &mut AHashMap<u64, u64>, num: u64, depth: u8) -> u64 {
@@ -82,7 +82,7 @@ fn seq_count<const MAX_DEPTH: u8>(cache: &mut AHashMap<u64, u64>, num: u64, dept
     res
 }
 
-fn part1_cached(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part1_cached(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut sum = 0;
     let mut cache = AHashMap::with_capacity(200_000);
     for num in ctx.input.split_whitespace() {
@@ -91,7 +91,7 @@ fn part1_cached(ctx: &mut RunContext) -> eyre::Result<u64> {
     Ok(sum)
 }
 
-fn part2(ctx: &mut RunContext) -> eyre::Result<u64> {
+fn part2(ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut sum = 0;
     let mut cache = AHashMap::with_capacity(200_000);
     for num in ctx.input.split_whitespace() {
@@ -180,7 +180,7 @@ const LUT75: [[u64; 100]; 75] = [
     [1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,],
 ];
 
-fn generate_lut(_ctx: &mut RunContext) -> eyre::Result<u64> {
+fn generate_lut(_ctx: &mut RunContext) -> eyre::Result<impl Display> {
     let mut cache = AHashMap::with_capacity(200_000);
 
     const DEPTH: u8 = 75;
