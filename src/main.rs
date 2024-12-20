@@ -28,6 +28,7 @@ enum RunCommand {
     Run { variant: Option<String> },
     Compare { variant1: String, variant2: String },
     List,
+    Fetch { day: u32 },
 }
 
 pub struct RunContext<'a> {
@@ -91,7 +92,6 @@ impl RunnerRepository {
     }
 }
 
-
 pub mod bitset;
 
 // i fucking hate that macros are sensitive to declaration order. why is it like this.
@@ -108,25 +108,8 @@ pub mod prelude {
     pub use std::fmt::Display;
 }
 
-fn run_variant(
-    repo: &RunnerRepository,
-    config: &RunConfig,
-    day: u32,
-    variant: &str,
-) -> eyre::Result<Vec<Sample>> {
-    if !repo.days.contains_key(&day) {
-        eyre::bail!("day {day} does not exist");
-    }
-
-    let variants = &repo.days[&day];
-    let Some(part) = variants.get(variant) else {
-        eyre::bail!("day{day}/{} was not found", variant);
-    };
-
-    let file_path = config
-        .input
-        .clone()
-        .unwrap_or_else(|| format!("inputs/day{day}.txt"));
+fn fetch_day(day: u32) -> eyre::Result<()> {
+    let file_path = format!("inputs/day{day}.txt");
 
     if !std::fs::exists(&file_path)? {
         let Ok(session_token) = std::env::var("AOC_TOKEN") else {
@@ -158,6 +141,30 @@ fn run_variant(
         std::fs::write(&file_path, &res.bytes()?[..])?;
     }
 
+    Ok(())
+}
+
+fn run_variant(
+    repo: &RunnerRepository,
+    config: &RunConfig,
+    day: u32,
+    variant: &str,
+) -> eyre::Result<Vec<Sample>> {
+    if !repo.days.contains_key(&day) {
+        eyre::bail!("day {day} does not exist");
+    }
+
+    let variants = &repo.days[&day];
+    let Some(part) = variants.get(variant) else {
+        eyre::bail!("day{day}/{} was not found", variant);
+    };
+
+    let file_path = config
+        .input
+        .clone()
+        .unwrap_or_else(|| format!("inputs/day{day}.txt"));
+
+    fetch_day(day)?;
     let input = std::fs::read_to_string(&file_path)?;
     let mut scratch = vec![0u8; input.len()];
 
@@ -334,6 +341,9 @@ fn main() -> eyre::Result<()> {
                     println!("\t- d{day}.{variant}");
                 }
             }
+        }
+        &RunCommand::Fetch { day } => {
+            fetch_day(day)?;
         }
     }
 
